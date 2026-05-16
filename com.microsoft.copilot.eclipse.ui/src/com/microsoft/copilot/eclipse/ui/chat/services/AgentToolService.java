@@ -40,6 +40,9 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.CreateFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.GetErrorsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.JavaDebuggerToolAdapter;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleProjectErrorsTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleProjectSummaryTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.RunMuleMavenTestsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter;
 import com.microsoft.copilot.eclipse.ui.chat.tools.RunInTerminalToolAdapter.GetTerminalOutputTool;
 import com.microsoft.copilot.eclipse.ui.dialogs.MissingTerminalDependenciesDialog;
@@ -97,6 +100,9 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
 
     // Diagnostic tools
     registerTool(new GetErrorsTool());
+    registerTool(new MuleProjectSummaryTool());
+    registerTool(new MuleProjectErrorsTool());
+    registerTool(new RunMuleMavenTestsTool());
 
     // Debug tools - only register if JDT bundles are available and in nightly build
     if (JdtUtils.isJdtDebugAvailable() && PlatformUtils.isNightly()) {
