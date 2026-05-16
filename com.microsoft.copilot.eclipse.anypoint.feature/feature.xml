@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="com.microsoft.copilot.eclipse.anypoint.feature"
+      label="GitHub Copilot for Anypoint Studio"
+      version="0.18.0.qualifier"
+      provider-name="GitHub Copilot">
+
+   <description>
+      GitHub Copilot packaged with the Eclipse dependencies needed for MuleSoft Anypoint Studio.
+   </description>
+
+   <includes
+         id="com.microsoft.copilot.eclipse.feature"
+         version="0.0.0"/>
+
+   <requires>
+      <import plugin="org.eclipse.mylyn.wikitext.markdown.ui"/>
+      <import plugin="org.eclipse.mylyn.wikitext.html"/>
+      <import plugin="org.eclipse.wildwebdeveloper.embedder.node"/>
+      <import plugin="org.eclipse.jdt.debug"/>
+   </requires>
+
+   <plugin
+         id="com.microsoft.copilot.eclipse.ui.terminal.tm"
+         version="0.0.0"/>
+
+</feature>
