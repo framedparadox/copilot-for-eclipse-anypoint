@@ -13,15 +13,15 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.T
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
 /**
- * Read-only Mule project summarizer for Agent Mode.
+ * Reviews MUnit suites for purpose, coverage, and assertion quality.
  */
-public class MuleProjectSummaryTool extends BaseTool {
-  private static final String TOOL_NAME = "summarize_mule_project";
+public class MunitFullReviewTool extends BaseTool {
+  static final String TOOL_NAME = "munit_full_review";
 
   /**
-   * Creates a Mule project summary tool.
+   * Creates an MUnit full review tool.
    */
-  public MuleProjectSummaryTool() {
+  public MunitFullReviewTool() {
     this.name = TOOL_NAME;
   }
 
@@ -29,14 +29,13 @@ public class MuleProjectSummaryTool extends BaseTool {
   public LanguageModelToolInformation getToolInformation() {
     LanguageModelToolInformation toolInfo = super.getToolInformation();
     toolInfo.setName(TOOL_NAME);
-    toolInfo.setDisplayDescription("Summarize Mule XML flows and project metadata");
+    toolInfo.setDisplayDescription("Review MUnit purpose, coverage, and quality");
     toolInfo.setDescription("""
-        Summarize a MuleSoft Anypoint Studio project by reading Mule XML files under src/main/mule,
-        project metadata, API specs, MUnit suites, connectors, deployment plugins, namespaces,
-        flows, sub-flows, global configs, processors, and property placeholders.
-        This tool is read-only.
+        Perform a full read-only MUnit review for Mule flows. Combines structure validation, logical test-purpose
+        checks, component coverage, branch and error-path review, assertion quality, external connector mock coverage,
+        and scenario completeness. Returns structured findings and next actions.
         """);
-    toolInfo.setInputSchema(MuleToolInputs.projectPathSchema());
+    toolInfo.setInputSchema(MuleToolInputs.munitValidationSchema());
     return toolInfo;
   }
 
@@ -50,11 +49,13 @@ public class MuleProjectSummaryTool extends BaseTool {
         result.addContent("projectPath must be an absolute path to an existing Mule project folder.");
       } else {
         result.setStatus(ToolInvocationStatus.success);
-        result.addContent(MuleProjectAnalyzer.renderSummary(MuleProjectAnalyzer.scan(projectPath)));
+        result.addContent(MuleProjectAnalyzer.munitFullReviewResponse(projectPath,
+            MuleToolInputs.optionalString(input.get(MuleToolInputs.FLOW_NAME)),
+            MuleToolInputs.optionalPath(input.get(MuleToolInputs.MUNIT_PATH))).toJson());
       }
     } catch (Exception e) {
       result.setStatus(ToolInvocationStatus.error);
-      result.addContent("Failed to summarize Mule project: " + e.getMessage());
+      result.addContent("Failed to review MUnit suites: " + e.getMessage());
     }
     return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
   }

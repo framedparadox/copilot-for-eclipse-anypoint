@@ -22,6 +22,9 @@ public final class MuleSoftMcpSettings {
   private MuleSoftMcpSettings() {
   }
 
+  /**
+   * Returns whether the MuleSoft MCP server registration is enabled.
+   */
   public static boolean isEnabled() {
     try {
       return node().getBoolean(KEY_ENABLED, false);
@@ -31,6 +34,9 @@ public final class MuleSoftMcpSettings {
     }
   }
 
+  /**
+   * Stores whether the MuleSoft MCP server registration is enabled.
+   */
   public static void setEnabled(boolean enabled) {
     try {
       node().putBoolean(KEY_ENABLED, enabled, false);
@@ -52,6 +58,9 @@ public final class MuleSoftMcpSettings {
     return getSecure(KEY_REGION, System.getenv(MuleSoftMcpConfiguration.ANYPOINT_REGION));
   }
 
+  /**
+   * Saves all MuleSoft MCP settings.
+   */
   public static void save(boolean enabled, String clientId, String clientSecret, String region) {
     ISecurePreferences node = node();
     try {

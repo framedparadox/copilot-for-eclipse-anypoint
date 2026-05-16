@@ -517,6 +517,7 @@ public class UiUtils {
     final boolean[] mouseEntered = new boolean[1];
     result.addPaintListener(e -> {
       Rectangle bounds = result.getBounds();
+      e.gc.setBackground(result.getBackground());
       e.gc.fillRectangle(0, 0, bounds.width, bounds.height);
 
       // Draw focus indicator border for accessibility
@@ -541,6 +542,8 @@ public class UiUtils {
         e.gc.setAlpha(oldAlpha);
       }
     });
+    result.addListener(SWT.Settings, e -> result.redraw());
+    result.addListener(SWT.Resize, e -> result.redraw());
 
     result.addMouseTrackListener(new org.eclipse.swt.events.MouseTrackAdapter() {
       private Color background = result.getBackground();

@@ -13,15 +13,15 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.T
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
 /**
- * Read-only Mule project summarizer for Agent Mode.
+ * Validates whether MUnit suites meaningfully test Mule flows.
  */
-public class MuleProjectSummaryTool extends BaseTool {
-  private static final String TOOL_NAME = "summarize_mule_project";
+public class MunitValidateFlowTestsTool extends BaseTool {
+  static final String TOOL_NAME = "munit_validate_flow_tests";
 
   /**
-   * Creates a Mule project summary tool.
+   * Creates an MUnit flow test validator tool.
    */
-  public MuleProjectSummaryTool() {
+  public MunitValidateFlowTestsTool() {
     this.name = TOOL_NAME;
   }
 
@@ -29,14 +29,13 @@ public class MuleProjectSummaryTool extends BaseTool {
   public LanguageModelToolInformation getToolInformation() {
     LanguageModelToolInformation toolInfo = super.getToolInformation();
     toolInfo.setName(TOOL_NAME);
-    toolInfo.setDisplayDescription("Summarize Mule XML flows and project metadata");
+    toolInfo.setDisplayDescription("Validate MUnit purpose, structure, and flow coverage");
     toolInfo.setDescription("""
-        Summarize a MuleSoft Anypoint Studio project by reading Mule XML files under src/main/mule,
-        project metadata, API specs, MUnit suites, connectors, deployment plugins, namespaces,
-        flows, sub-flows, global configs, processors, and property placeholders.
-        This tool is read-only.
+        Validate MUnit suites for Mule flows. Checks whether tests have a logical purpose, whether MUnit namespaces,
+        schema locations, munit:config, execution, validation, assertions, mocks, spies, and verify-call processors are
+        present, and whether flow components and behavioral aspects are covered. This tool is read-only.
         """);
-    toolInfo.setInputSchema(MuleToolInputs.projectPathSchema());
+    toolInfo.setInputSchema(MuleToolInputs.munitValidationSchema());
     return toolInfo;
   }
 
@@ -50,11 +49,13 @@ public class MuleProjectSummaryTool extends BaseTool {
         result.addContent("projectPath must be an absolute path to an existing Mule project folder.");
       } else {
         result.setStatus(ToolInvocationStatus.success);
-        result.addContent(MuleProjectAnalyzer.renderSummary(MuleProjectAnalyzer.scan(projectPath)));
+        result.addContent(MuleProjectAnalyzer.munitValidationResponse(projectPath,
+            MuleToolInputs.optionalString(input.get(MuleToolInputs.FLOW_NAME)),
+            MuleToolInputs.optionalPath(input.get(MuleToolInputs.MUNIT_PATH))).toJson());
       }
     } catch (Exception e) {
       result.setStatus(ToolInvocationStatus.error);
-      result.addContent("Failed to summarize Mule project: " + e.getMessage());
+      result.addContent("Failed to validate MUnit suites: " + e.getMessage());
     }
     return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
   }

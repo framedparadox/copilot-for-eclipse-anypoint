@@ -13,15 +13,15 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.T
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
 /**
- * Read-only Mule project summarizer for Agent Mode.
+ * Suggests improvements for MUnit coverage cadence and maintainability.
  */
-public class MuleProjectSummaryTool extends BaseTool {
-  private static final String TOOL_NAME = "summarize_mule_project";
+public class MunitImprovementSuggestionsTool extends BaseTool {
+  static final String TOOL_NAME = "munit_improvement_suggestions";
 
   /**
-   * Creates a Mule project summary tool.
+   * Creates an MUnit improvement suggestion tool.
    */
-  public MuleProjectSummaryTool() {
+  public MunitImprovementSuggestionsTool() {
     this.name = TOOL_NAME;
   }
 
@@ -29,14 +29,13 @@ public class MuleProjectSummaryTool extends BaseTool {
   public LanguageModelToolInformation getToolInformation() {
     LanguageModelToolInformation toolInfo = super.getToolInformation();
     toolInfo.setName(TOOL_NAME);
-    toolInfo.setDisplayDescription("Summarize Mule XML flows and project metadata");
+    toolInfo.setDisplayDescription("Suggest MUnit cadence and coverage improvements");
     toolInfo.setDescription("""
-        Summarize a MuleSoft Anypoint Studio project by reading Mule XML files under src/main/mule,
-        project metadata, API specs, MUnit suites, connectors, deployment plugins, namespaces,
-        flows, sub-flows, global configs, processors, and property placeholders.
-        This tool is read-only.
+        Review MUnit coverage cadence for a Mule project or flow. Suggests focused improvements for scenario mix,
+        assertion depth, external connector mocking, branch and error-path tests, and maintainable test naming. This
+        tool is read-only and returns structured recommendations.
         """);
-    toolInfo.setInputSchema(MuleToolInputs.projectPathSchema());
+    toolInfo.setInputSchema(MuleToolInputs.munitValidationSchema());
     return toolInfo;
   }
 
@@ -50,11 +49,13 @@ public class MuleProjectSummaryTool extends BaseTool {
         result.addContent("projectPath must be an absolute path to an existing Mule project folder.");
       } else {
         result.setStatus(ToolInvocationStatus.success);
-        result.addContent(MuleProjectAnalyzer.renderSummary(MuleProjectAnalyzer.scan(projectPath)));
+        result.addContent(MuleProjectAnalyzer.munitImprovementSuggestionsResponse(projectPath,
+            MuleToolInputs.optionalString(input.get(MuleToolInputs.FLOW_NAME)),
+            MuleToolInputs.optionalPath(input.get(MuleToolInputs.MUNIT_PATH))).toJson());
       }
     } catch (Exception e) {
       result.setStatus(ToolInvocationStatus.error);
-      result.addContent("Failed to summarize Mule project: " + e.getMessage());
+      result.addContent("Failed to suggest MUnit improvements: " + e.getMessage());
     }
     return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
   }

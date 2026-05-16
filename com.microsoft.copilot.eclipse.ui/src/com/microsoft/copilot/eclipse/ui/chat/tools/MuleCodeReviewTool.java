@@ -13,15 +13,15 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.LanguageModelToolResult.T
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
 
 /**
- * Read-only Mule project summarizer for Agent Mode.
+ * Senior-level MuleSoft code review tool.
  */
-public class MuleProjectSummaryTool extends BaseTool {
-  private static final String TOOL_NAME = "summarize_mule_project";
+public class MuleCodeReviewTool extends BaseTool {
+  static final String TOOL_NAME = "mule_code_review";
 
   /**
-   * Creates a Mule project summary tool.
+   * Creates a Mule code review tool.
    */
-  public MuleProjectSummaryTool() {
+  public MuleCodeReviewTool() {
     this.name = TOOL_NAME;
   }
 
@@ -29,14 +29,13 @@ public class MuleProjectSummaryTool extends BaseTool {
   public LanguageModelToolInformation getToolInformation() {
     LanguageModelToolInformation toolInfo = super.getToolInformation();
     toolInfo.setName(TOOL_NAME);
-    toolInfo.setDisplayDescription("Summarize Mule XML flows and project metadata");
+    toolInfo.setDisplayDescription("Review Mule XML, DataWeave, specs, and tests");
     toolInfo.setDescription("""
-        Summarize a MuleSoft Anypoint Studio project by reading Mule XML files under src/main/mule,
-        project metadata, API specs, MUnit suites, connectors, deployment plugins, namespaces,
-        flows, sub-flows, global configs, processors, and property placeholders.
-        This tool is read-only.
+        Perform a MuleSoft code review across Mule XML, DataWeave, properties, API specs, MUnit, and POM metadata.
+        Checks structure, naming, duplicate flows, error handling, logging, test coverage, and deployment readiness.
+        This tool is read-only and returns findings by severity with remediation guidance.
         """);
-    toolInfo.setInputSchema(MuleToolInputs.projectPathSchema());
+    toolInfo.setInputSchema(MuleToolInputs.codeReviewSchema());
     return toolInfo;
   }
 
@@ -50,11 +49,13 @@ public class MuleProjectSummaryTool extends BaseTool {
         result.addContent("projectPath must be an absolute path to an existing Mule project folder.");
       } else {
         result.setStatus(ToolInvocationStatus.success);
-        result.addContent(MuleProjectAnalyzer.renderSummary(MuleProjectAnalyzer.scan(projectPath)));
+        result.addContent(MuleProjectAnalyzer.codeReviewResponse(projectPath,
+            MuleToolInputs.optionalStringList(input.get(MuleToolInputs.FILES)),
+            MuleToolInputs.optionalString(input.get(MuleToolInputs.REVIEW_TYPE))).toJson());
       }
     } catch (Exception e) {
       result.setStatus(ToolInvocationStatus.error);
-      result.addContent("Failed to summarize Mule project: " + e.getMessage());
+      result.addContent("Failed to review Mule project: " + e.getMessage());
     }
     return CompletableFuture.completedFuture(new LanguageModelToolResult[] { result });
   }

@@ -38,6 +38,9 @@ public class RunMuleMavenTestsTool extends BaseTool {
   private static final int DEFAULT_MAX_OUTPUT_CHARS = 12000;
   private static final Duration TIMEOUT = Duration.ofMinutes(10);
 
+  /**
+   * Creates a Mule Maven validation tool.
+   */
   public RunMuleMavenTestsTool() {
     this.name = TOOL_NAME;
   }

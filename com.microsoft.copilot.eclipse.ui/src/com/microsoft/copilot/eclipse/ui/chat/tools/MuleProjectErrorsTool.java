@@ -32,6 +32,9 @@ public class MuleProjectErrorsTool extends BaseTool {
   private static final String TOOL_NAME = "get_mule_project_errors";
   private static final String PROJECT_PATH = "projectPath";
 
+  /**
+   * Creates a Mule project marker reader.
+   */
   public MuleProjectErrorsTool() {
     this.name = TOOL_NAME;
   }
@@ -78,7 +81,8 @@ public class MuleProjectErrorsTool extends BaseTool {
   }
 
   private String getErrors(Path projectPath) throws CoreException {
-    IContainer[] containers = ResourcesPlugin.getWorkspace().getRoot().findContainersForLocationURI(projectPath.toUri());
+    IContainer[] containers =
+        ResourcesPlugin.getWorkspace().getRoot().findContainersForLocationURI(projectPath.toUri());
     if (containers == null || containers.length == 0) {
       return "No Eclipse workspace project or folder is mapped to " + projectPath;
     }
