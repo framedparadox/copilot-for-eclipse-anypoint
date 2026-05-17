@@ -89,6 +89,13 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
   public void setContent(String content) {
     this.getDocument().set(content);
     this.getTextWidget().setSelection(content.length());
+    applyDarkInputBackground();
+  }
+
+  @Override
+  public void refresh() {
+    super.refresh();
+    applyDarkInputBackground();
   }
 
   @Override
@@ -110,9 +117,9 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     tvw.setLayout(new GridLayout(1, false));
     tvw.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     tvw.setAlwaysShowScrollBars(false);
-    applyDarkInputBackground(tvw);
-    SwtUtils.invokeOnDisplayThreadAsync(() -> applyDarkInputBackground(tvw), tvw);
-    tvw.addListener(SWT.Settings, e -> applyDarkInputBackground(tvw));
+    applyDarkInputBackground();
+    SwtUtils.invokeOnDisplayThreadAsync(this::applyDarkInputBackground, tvw);
+    tvw.addListener(SWT.Settings, e -> applyDarkInputBackground());
 
     tvw.addModifyListener(new ModifyListener() {
       @Override
@@ -170,6 +177,10 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
       return;
     }
     textWidget.setBackground(parent.getBackground());
+  }
+
+  private void applyDarkInputBackground() {
+    applyDarkInputBackground(this.getTextWidget());
   }
 
   private void clearFormat(int start, int end) {
