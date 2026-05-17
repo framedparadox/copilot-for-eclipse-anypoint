@@ -155,6 +155,7 @@ class DropdownPopup {
     items.clear();
     focusedIndex = -1;
     populateGroups(container, groups);
+    applyPopupBackgroundRecursively(container, popupBg);
 
     Point contentSize = container.computeSize(SWT.DEFAULT, SWT.DEFAULT);
     container.setSize(contentSize);
@@ -507,6 +508,7 @@ class DropdownPopup {
     hoverContent.setLayout(contentLayout);
 
     item.getHoverProvider().configureHover(hoverContent, item, this::close);
+    applyPopupBackgroundRecursively(hoverContent, popupBg);
 
     final Color borderColor = CssConstants.getBorderColor(display);
     hoverShell.addPaintListener(e -> {
@@ -710,6 +712,18 @@ class DropdownPopup {
   private void styleControl(Control control) {
     if (stylingEngine != null) {
       stylingEngine.style(control);
+    }
+  }
+
+  private void applyPopupBackgroundRecursively(Control control, Color background) {
+    if (control == null || control.isDisposed()) {
+      return;
+    }
+    control.setBackground(background);
+    if (control instanceof Composite composite) {
+      for (Control child : composite.getChildren()) {
+        applyPopupBackgroundRecursively(child, background);
+      }
     }
   }
 

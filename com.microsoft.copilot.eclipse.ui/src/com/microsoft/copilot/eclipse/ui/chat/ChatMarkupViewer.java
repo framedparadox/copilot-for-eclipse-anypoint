@@ -19,11 +19,13 @@ import org.eclipse.mylyn.wikitext.parser.builder.HtmlDocumentBuilder;
 import org.eclipse.mylyn.wikitext.parser.css.CssParser;
 import org.eclipse.mylyn.wikitext.ui.viewer.MarkupViewer;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.graphics.RGB;
 import org.eclipse.swt.widgets.Composite;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 class ChatMarkupViewer extends MarkupViewer {
@@ -38,6 +40,8 @@ class ChatMarkupViewer extends MarkupViewer {
 
     MultipleHyperlinkPresenter hyperlinkPresenter = new MultipleHyperlinkPresenter((RGB) null);
     this.setHyperlinkPresenter(hyperlinkPresenter);
+
+    applyMessageBackground();
 
     // Register for chat font updates via centralized service
     var chatServiceManager = CopilotUi.getPlugin().getChatServiceManager();
@@ -67,6 +71,7 @@ class ChatMarkupViewer extends MarkupViewer {
     try {
       String htmlText = this.computeHtml(source);
       setHtml(htmlText);
+      applyMessageBackground();
       // reset text presentation to update the style, otherwise the style won't be updated
       this.setTextPresentation(getTextPresentation());
     } catch (Throwable t) {
@@ -74,7 +79,24 @@ class ChatMarkupViewer extends MarkupViewer {
         getTextPresentation().clear();
       }
       setDocumentNoMarkup(new Document(source), new AnnotationModel());
+      applyMessageBackground();
       // TODO: Whether we should track the parse exception?
+    }
+  }
+
+  private void applyMessageBackground() {
+    StyledText textWidget = getTextWidget();
+    if (textWidget == null || textWidget.isDisposed()) {
+      return;
+    }
+    Object currentClassNames = textWidget.getData(CssConstants.CSS_CLASS_NAME_KEY);
+    if (currentClassNames instanceof String classNames && !classNames.contains("chat-message-text")) {
+      textWidget.setData(CssConstants.CSS_CLASS_NAME_KEY, classNames + " chat-message-text");
+    } else if (!(currentClassNames instanceof String)) {
+      textWidget.setData(CssConstants.CSS_CLASS_NAME_KEY, "chat-message-text");
+    }
+    if (!UiUtils.isDarkTheme()) {
+      textWidget.setBackground(textWidget.getDisplay().getSystemColor(SWT.COLOR_WIDGET_BACKGROUND));
     }
   }
 

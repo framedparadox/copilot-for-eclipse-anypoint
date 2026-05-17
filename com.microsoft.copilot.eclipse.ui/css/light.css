@@ -129,13 +129,18 @@
 #chat-content-viewer > Composite,
 #chat-content-viewer > Composite * {
     color: #000000;
-    background-color: #FFFFFF;
+    background-color: #F1F1F2;
 }
 
 #chat-content-viewer > Composite > UserTurnWidget,
 #chat-content-viewer > Composite > UserTurnWidget * {
 	color: #000000;
-	background-color: #FFFFFF;
+	background-color: #F1F1F2;
+}
+
+#chat-content-viewer StyledText.chat-message-text,
+#chat-content-viewer .chat-message-text {
+	background-color: #F1F1F2;
 }
 
 /* Chat history list items - light theme */
