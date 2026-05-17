@@ -14,6 +14,7 @@ import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.TextEvent;
 import org.eclipse.jface.text.contentassist.ContentAssistant;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.LineBackgroundEvent;
 import org.eclipse.swt.custom.StyleRange;
 import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.KeyAdapter;
@@ -120,6 +121,10 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     applyDarkInputBackground();
     SwtUtils.invokeOnDisplayThreadAsync(this::applyDarkInputBackground, tvw);
     tvw.addListener(SWT.Settings, e -> applyDarkInputBackground());
+    tvw.addListener(SWT.FocusIn, e -> applyDarkInputBackgroundAsync());
+    tvw.addListener(SWT.FocusOut, e -> applyDarkInputBackgroundAsync());
+    tvw.addListener(SWT.Modify, e -> applyDarkInputBackgroundAsync());
+    tvw.addLineBackgroundListener(this::applyDarkInputLineBackground);
 
     tvw.addModifyListener(new ModifyListener() {
       @Override
@@ -179,8 +184,20 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     textWidget.setBackground(parent.getBackground());
   }
 
+  private void applyDarkInputBackgroundAsync() {
+    StyledText textWidget = this.getTextWidget();
+    SwtUtils.invokeOnDisplayThreadAsync(this::applyDarkInputBackground, textWidget);
+  }
+
   private void applyDarkInputBackground() {
     applyDarkInputBackground(this.getTextWidget());
+  }
+
+  private void applyDarkInputLineBackground(LineBackgroundEvent event) {
+    if (parent == null || parent.isDisposed() || !UiUtils.isDarkTheme()) {
+      return;
+    }
+    event.lineBackground = parent.getBackground();
   }
 
   private void clearFormat(int start, int end) {
