@@ -134,6 +134,7 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     });
 
     this.placeholderColor = CssConstants.getInputPlaceHolderColor(tvw.getDisplay());
+    tvw.setBackground(CssConstants.getChatSurfaceBg(tvw.getDisplay()));
     tvw.addPaintListener(this);
     SwtUtils.invokeOnDisplayThread(tvw::redraw, tvw);
 

@@ -22,6 +22,7 @@ import org.eclipse.swt.widgets.Label;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 
 /**
@@ -35,6 +36,7 @@ public class UserTurnWidget extends BaseTurnWidget {
   public UserTurnWidget(Composite parent, int style, ChatServiceManager serviceManager, String turnId) {
     super(parent, style, serviceManager, turnId, false, null);
     setData("org.eclipse.swtbot.widget.key", "user-turn");
+    setBackground(CssConstants.getUserBubbleBg(getDisplay()));
   }
 
   @Override
@@ -110,6 +112,7 @@ public class UserTurnWidget extends BaseTurnWidget {
     StyledText styledText = this.currentTextBlock.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, false));
     styledText.setEditable(false);
+    styledText.setBackground(CssConstants.getUserBubbleBg(getDisplay()));
 
     // Register for chat font updates via centralized service
     serviceManager.getChatFontService().registerControl(styledText);

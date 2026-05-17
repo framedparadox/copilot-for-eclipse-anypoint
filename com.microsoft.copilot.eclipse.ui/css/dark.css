@@ -72,7 +72,7 @@
 #chat-action-bar,
 #chat-action-bar * {
 	color: #DEE1E5;
-	background-color: #48484C;
+	background-color: #26282B;
 }
 #chat-action-bar CurrentReferencedFile > Label.text-secondary {
 	color: #A4A4A4;
@@ -92,17 +92,17 @@
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > .bg-command-panel {
-	background-color: #48484C;
+	background-color: #2F3030;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block {
-	background-color: #48484C;
+	background-color: #2F3030;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite,
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget,
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget * {
-	background-color: #48484C;
+	background-color: #2F3030;
 }
 
 /* Override button and command panel styles inside subagent message block */
@@ -112,7 +112,7 @@
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block .bg-command-panel {
-	background-color: #2F3030;
+	background-color: #1E1F22;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > AgentStatusLabel > .text-secondary,

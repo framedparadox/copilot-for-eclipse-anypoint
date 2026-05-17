@@ -92,17 +92,17 @@
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > .bg-command-panel {
-	background-color: #FFFFFF;
+	background-color: #F1F1F2;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block {
-	background-color: #FFFFFF;
+	background-color: #F1F1F2;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite,
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget,
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget * {
-	background-color: #FFFFFF;
+	background-color: #F1F1F2;
 }
 
 /* Override button and command panel styles inside subagent message block */
@@ -112,7 +112,7 @@
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block .bg-command-panel {
-	background-color: #F1F1F2;
+	background-color: #E4E4E4;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > AgentStatusLabel > .text-secondary,
@@ -133,7 +133,7 @@
 #chat-content-viewer > Composite > UserTurnWidget,
 #chat-content-viewer > Composite > UserTurnWidget * {
 	color: #000000;
-	background-color: #EFEFEE;
+	background-color: #E4E4E4;
 }
 
 /* Chat history list items - light theme */

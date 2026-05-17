@@ -36,6 +36,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
@@ -106,6 +107,7 @@ public abstract class BaseTurnWidget extends Composite {
     gl.marginLeft = 5;
     setLayout(gl);
     setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
+    setBackground(CssConstants.getChatContainerBg(getDisplay()));
 
     createContent();
     layout();
@@ -151,6 +153,7 @@ public abstract class BaseTurnWidget extends Composite {
     titleLayout.marginLeft = -5;
     cmpTitle.setLayout(titleLayout);
     cmpTitle.setLayoutData(new GridData(SWT.FILL, SWT.NONE, true, false));
+    cmpTitle.setBackground(CssConstants.getChatContainerBg(getDisplay()));
 
     AvatarService avatarService = serviceManager.getAvatarService();
     icon = getAvatar(avatarService);

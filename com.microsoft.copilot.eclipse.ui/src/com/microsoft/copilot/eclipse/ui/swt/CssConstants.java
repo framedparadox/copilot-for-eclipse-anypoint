@@ -246,4 +246,44 @@ public class CssConstants {
     return new Color(display, 223, 225, 229);
   }
 
+  /**
+   * Outermost chat container background. Light #F8F8F8 / Dark #1E1F22.
+   */
+  public static Color getChatContainerBg(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 30, 31, 34);
+    }
+    return new Color(display, 248, 248, 248);
+  }
+
+  /**
+   * Raised surface background (action bar, assistant turn text). Light #FFFFFF / Dark #26282B.
+   */
+  public static Color getChatSurfaceBg(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 38, 40, 43);
+    }
+    return new Color(display, 255, 255, 255);
+  }
+
+  /**
+   * User message bubble background. Light #E4E4E4 / Dark #26282B.
+   */
+  public static Color getUserBubbleBg(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 38, 40, 43);
+    }
+    return new Color(display, 228, 228, 228);
+  }
+
+  /**
+   * Subagent block / confirmation dialog background. Light #F1F1F2 / Dark #2F3030.
+   */
+  public static Color getSubagentBg(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 47, 48, 48);
+    }
+    return new Color(display, 241, 241, 242);
+  }
+
 }

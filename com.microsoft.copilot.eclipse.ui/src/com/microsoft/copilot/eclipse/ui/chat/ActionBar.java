@@ -143,6 +143,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.setLayout(glContainer);
     this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.setData(CssConstants.CSS_ID_KEY, "chat-action-bar-wrapper");
+    this.setBackground(CssConstants.getChatContainerBg(getDisplay()));
     this.chatServiceManager = chatServiceManager;
     this.updateSendButtonToCancelButtonHandler = event -> {
       updateButtonState(SendOrCancelButtonStates.CANCEL_ENABLED);
@@ -179,6 +180,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     glInputArea.verticalSpacing = 0;
     this.inputArea.setLayout(glInputArea);
     this.inputArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    this.inputArea.setBackground(CssConstants.getChatContainerBg(getDisplay()));
 
     Composite borderedActionBar = new Composite(this.inputArea, style | SWT.BORDER);
     GridLayout gl = new GridLayout(1, false);
@@ -187,6 +189,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     borderedActionBar.setLayout(gl);
     borderedActionBar.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     borderedActionBar.setData(CssConstants.CSS_ID_KEY, "chat-action-bar");
+    borderedActionBar.setBackground(CssConstants.getChatSurfaceBg(getDisplay()));
 
     RowLayout rowLayout = new RowLayout();
     rowLayout.wrap = true;
@@ -205,6 +208,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpFileRef = new Composite(borderedActionBar, SWT.NONE);
     this.cmpFileRef.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
     this.cmpFileRef.setLayout(rowLayout);
+    this.cmpFileRef.setBackground(CssConstants.getChatSurfaceBg(getDisplay()));
     new AddContextButton(this.cmpFileRef);
     this.currentFileRef = new CurrentReferencedFile(this.cmpFileRef);
     ReferencedFileService referencedFileService = chatServiceManager.getReferencedFileService();
@@ -299,6 +303,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.cmpActionArea = new Composite(borderedActionBar, SWT.NONE);
     this.cmpActionArea.setLayout(glActionArea);
     this.cmpActionArea.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+    this.cmpActionArea.setBackground(CssConstants.getChatSurfaceBg(getDisplay()));
 
     Composite cmpControlBar = new Composite(this.cmpActionArea, SWT.NONE);
     GridLayout glControlBar = new GridLayout(5, false);
@@ -306,6 +311,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     glControlBar.marginLeft = 0;
     cmpControlBar.setLayout(glControlBar);
     cmpControlBar.setLayoutData(new GridData(SWT.LEFT, SWT.BOTTOM, true, false));
+    cmpControlBar.setBackground(CssConstants.getChatSurfaceBg(getDisplay()));
     setUpChatModePicker(cmpControlBar);
     setUpModelPicker(cmpControlBar);
     setUpAutoBreakpointButtonInControlBar(cmpControlBar);
@@ -319,6 +325,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     this.bottomRightButtonsComposite = new Composite(this.cmpActionArea, SWT.NONE);
     this.bottomRightButtonsComposite.setLayout(buttonsLayout);
     this.bottomRightButtonsComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+    this.bottomRightButtonsComposite.setBackground(CssConstants.getChatSurfaceBg(getDisplay()));
 
     // Update send to job button and send button together
     updateButtonsLayout();

@@ -54,6 +54,7 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
     StyledText styledText = this.currentTextBlock.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, false));
     styledText.setEditable(false);
+    styledText.setBackground(CssConstants.getChatContainerBg(getDisplay()));
 
     AccessibilityUtils.addFocusBorderToComposite(styledText);
   }
@@ -111,6 +112,7 @@ public class CopilotTurnWidget extends ThinkingTurnWidget {
     footer = new Composite(this, SWT.NONE);
     footer.setLayout(new GridLayout(1, false));
     footer.setLayoutData(new GridData(SWT.FILL, SWT.BOTTOM, true, false));
+    footer.setBackground(CssConstants.getChatContainerBg(getDisplay()));
   }
 
 }
