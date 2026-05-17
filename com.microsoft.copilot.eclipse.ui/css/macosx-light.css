@@ -2,6 +2,11 @@
 /* Licensed under the MIT license. */
 
 /* macOS Light theme overrides */
+#chat-content-viewer StyledText.chat-message-text,
+#chat-content-viewer .chat-message-text {
+	background-color: #F1F1F2;
+}
+
 #chat-history-viewer Label.chat-history-item-current-label {
 	color: #FFFFFF;
 }
@@ -14,4 +19,3 @@
 	color: #FFFFFF;
 	background-color: #3786F6;
 }
-

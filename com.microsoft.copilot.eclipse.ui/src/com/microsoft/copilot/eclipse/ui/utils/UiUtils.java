@@ -96,6 +96,8 @@ import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
  * Utilities for Eclipse UI.
  */
 public class UiUtils {
+  private static final String ICON_BUTTON_USE_PARENT_BACKGROUND_KEY =
+      "com.microsoft.copilot.eclipse.ui.iconButtonUseParentBackground";
 
   public static final String HAIR_SPACE = "\u200A";
   private static final int MAX_SPACE_TO_ADD = 500;
@@ -517,6 +519,7 @@ public class UiUtils {
     final boolean[] mouseEntered = new boolean[1];
     result.addPaintListener(e -> {
       Rectangle bounds = result.getBounds();
+      e.gc.setBackground(getIconButtonBackground(result, mouseEntered[0]));
       e.gc.fillRectangle(0, 0, bounds.width, bounds.height);
 
       // Draw focus indicator border for accessibility
@@ -541,27 +544,61 @@ public class UiUtils {
         e.gc.setAlpha(oldAlpha);
       }
     });
+    result.addListener(SWT.Settings, e -> result.redraw());
+    result.addListener(SWT.Resize, e -> result.redraw());
 
     result.addMouseTrackListener(new org.eclipse.swt.events.MouseTrackAdapter() {
-      private Color background = result.getBackground();
+      private Color background = getIconButtonDefaultBackground(result);
       private Color hoverBackground = CssConstants.getButtonFocusBgColor(result.getDisplay());
 
       @Override
       public void mouseEnter(org.eclipse.swt.events.MouseEvent e) {
         // The above background initialization will not take the css color, so here we need to re-fetch
         // the color when the mouse enters.
-        background = result.getBackground();
+        background = getIconButtonDefaultBackground(result);
         result.setBackground(hoverBackground);
         mouseEntered[0] = true;
       }
 
       @Override
       public void mouseExit(org.eclipse.swt.events.MouseEvent e) {
-        result.setBackground(background);
+        result.setBackground(shouldUseParentBackgroundForIconButton(result) ? getIconButtonDefaultBackground(result)
+            : background);
         mouseEntered[0] = false;
       }
     });
     return result;
+  }
+
+  /**
+   * Paints an icon button with its parent background when it is not hovered, making the button appear flat.
+   */
+  public static void useParentBackgroundForIconButton(Button button) {
+    if (button == null || button.isDisposed()) {
+      return;
+    }
+    button.setData(ICON_BUTTON_USE_PARENT_BACKGROUND_KEY, Boolean.TRUE);
+    button.setBackground(getIconButtonDefaultBackground(button));
+    button.redraw();
+  }
+
+  private static Color getIconButtonBackground(Button button, boolean mouseEntered) {
+    if (mouseEntered) {
+      return button.getBackground();
+    }
+    return getIconButtonDefaultBackground(button);
+  }
+
+  private static Color getIconButtonDefaultBackground(Button button) {
+    if (shouldUseParentBackgroundForIconButton(button) && button.getParent() != null
+        && !button.getParent().isDisposed()) {
+      return button.getParent().getBackground();
+    }
+    return button.getBackground();
+  }
+
+  private static boolean shouldUseParentBackgroundForIconButton(Button button) {
+    return Boolean.TRUE.equals(button.getData(ICON_BUTTON_USE_PARENT_BACKGROUND_KEY));
   }
 
   /**
