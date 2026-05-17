@@ -50,6 +50,7 @@ public class AddContextButton extends Composite {
     setLayout(layout);
 
     btnAttachIcon = UiUtils.createIconButton(this, SWT.PUSH | SWT.FLAT);
+    UiUtils.useParentBackgroundForIconButton(btnAttachIcon);
     Image attachImage = UiUtils.buildImageFromPngPath("/icons/chat/attach_context.png");
     btnAttachIcon.setImage(attachImage);
     String attachTooltip = Messages.chat_addContext_tooltip;

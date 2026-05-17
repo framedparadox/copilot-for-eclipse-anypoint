@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+	<extension point="com.microsoft.copilot.eclipse.ui.mcpRegistration">
+		<provider class="com.microsoft.copilot.eclipse.anypoint.MuleSoftMcpRegistrationProvider" />
+	</extension>
+
+	<extension point="org.eclipse.ui.preferencePages">
+		<page
+			id="com.microsoft.copilot.eclipse.anypoint.preferences.MuleSoftMcpPreferencePage"
+			name="MuleSoft MCP"
+			category="com.microsoft.copilot.eclipse.ui.preferences.CopilotPreferencesPage"
+			class="com.microsoft.copilot.eclipse.anypoint.MuleSoftMcpPreferencePage">
+		</page>
+	</extension>
+</plugin>

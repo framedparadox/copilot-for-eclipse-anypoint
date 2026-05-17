@@ -50,6 +50,7 @@ public class DropdownButton extends Composite {
   private List<DropdownItemGroup> itemGroups;
   private String selectedItemId;
   private boolean mouseHover;
+  private boolean useParentBackground;
 
   /**
    * Creates a new dropdown button.
@@ -150,6 +151,14 @@ public class DropdownButton extends Composite {
   }
 
   /**
+   * Uses the parent background for the button face when not hovered.
+   */
+  public void setUseParentBackground(boolean useParentBackground) {
+    this.useParentBackground = useParentBackground;
+    redraw();
+  }
+
+  /**
    * Sets the accessibility name used by screen readers.
    *
    * @param name the accessible name
@@ -187,7 +196,7 @@ public class DropdownButton extends Composite {
     Display display = getDisplay();
     DropdownItem selected = findItemById(selectedItemId);
     Image selectedIcon = getSelectedItemIcon(selected);
-    Color bg = mouseHover ? CssConstants.getButtonFocusBgColor(display) : getBackground();
+    Color bg = mouseHover ? CssConstants.getButtonFocusBgColor(display) : getButtonBackground();
     gc.setBackground(bg);
     gc.fillRectangle(bounds);
 
@@ -221,6 +230,13 @@ public class DropdownButton extends Composite {
     }
     String selectedLabel = selected.getSelectedLabel();
     return selectedLabel != null ? selectedLabel : selected.getLabel();
+  }
+
+  private Color getButtonBackground() {
+    if (useParentBackground && getParent() != null && !getParent().isDisposed()) {
+      return getParent().getBackground();
+    }
+    return getBackground();
   }
 
   private DropdownItem findItemById(String id) {

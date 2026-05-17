@@ -8,6 +8,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseTrackAdapter;
 import org.eclipse.swt.events.MouseTrackListener;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
@@ -55,6 +56,7 @@ public final class ItemController {
   private final IStylingEngine styling;
   private String baseCssId;
   private boolean focused;
+  private Color focusedBackground;
 
   private ItemController(Composite row, IStylingEngine styling, String baseCssId) {
     this.row = row;
@@ -76,6 +78,7 @@ public final class ItemController {
     ItemController controller = new ItemController(row, styling, baseCssId);
     row.setData(CONTROLLER_DATA_KEY, controller);
     row.addPaintListener(e -> controller.paintFocusedBackground(e.gc));
+    row.addDisposeListener(e -> controller.dispose());
     controller.applyState();
     return controller;
   }
@@ -176,8 +179,10 @@ public final class ItemController {
     String descendantCssId = focused ? CSS_FOCUSED_ID : baseCssId;
     row.setRedraw(false);
     applyCssId(row, baseCssId);
+    Color descendantBackground = focused ? getFocusedBackground() : row.getBackground();
     for (Control child : row.getChildren()) {
       applyCssIdRecursively(child, descendantCssId);
+      applyRowBackgroundRecursively(child, descendantBackground);
     }
     row.setRedraw(true);
     row.redraw();
@@ -192,8 +197,22 @@ public final class ItemController {
       return;
     }
     gc.setAntialias(SWT.ON);
-    gc.setBackground(CssConstants.getPopupItemFocusBgColor(row.getDisplay()));
+    gc.setBackground(getFocusedBackground());
     gc.fillRoundRectangle(0, 0, bounds.width, bounds.height, FOCUS_ARC, FOCUS_ARC);
+  }
+
+  private Color getFocusedBackground() {
+    if (focusedBackground == null || focusedBackground.isDisposed()) {
+      focusedBackground = CssConstants.getPopupItemFocusBgColor(row.getDisplay());
+    }
+    return focusedBackground;
+  }
+
+  private void dispose() {
+    if (focusedBackground != null && !focusedBackground.isDisposed()) {
+      focusedBackground.dispose();
+    }
+    focusedBackground = null;
   }
 
   private void applyCssId(Control control, String cssId) {
@@ -213,6 +232,18 @@ public final class ItemController {
     if (control instanceof Composite composite) {
       for (Control child : composite.getChildren()) {
         applyCssIdRecursively(child, cssId);
+      }
+    }
+  }
+
+  private void applyRowBackgroundRecursively(Control control, Color background) {
+    if (control.isDisposed()) {
+      return;
+    }
+    control.setBackground(background);
+    if (control instanceof Composite composite) {
+      for (Control child : composite.getChildren()) {
+        applyRowBackgroundRecursively(child, background);
       }
     }
   }

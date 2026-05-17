@@ -53,6 +53,8 @@
 #chat-container > LoadingViewer *,
 #chat-container > BeforeLoginWelcomeViewer,
 #chat-container > BeforeLoginWelcomeViewer *,
+#chat-container > NoSubscriptionViewer,
+#chat-container > NoSubscriptionViewer *,
 #chat-content-wrapper,
 #chat-content-wrapper > ChatHistoryViewer,
 #chat-content-wrapper > ChatHistoryViewer *,
@@ -72,14 +74,14 @@
 #chat-action-bar,
 #chat-action-bar * {
 	color: #DEE1E5;
-	background-color: #48484C;
+	background-color: #1E1F22;
 }
 #chat-action-bar CurrentReferencedFile > Label.text-secondary {
 	color: #A4A4A4;
 }
 
 #chat-container > HandoffContainer,
-#chat-container > HandoffContainer > * {
+#chat-container > HandoffContainer * {
 	background-color: #1E1F22;
 }
 #chat-container > HandoffContainer > Label.text-secondary {
@@ -92,17 +94,17 @@
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > .bg-command-panel {
-	background-color: #48484C;
+	background-color: #1E1F22;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block {
-	background-color: #48484C;
+	background-color: #1E1F22;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite,
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget,
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block > Composite > SubagentTurnWidget * {
-	background-color: #48484C;
+	background-color: #1E1F22;
 }
 
 /* Override button and command panel styles inside subagent message block */
@@ -133,7 +135,7 @@
 #chat-content-viewer > Composite > UserTurnWidget,
 #chat-content-viewer > Composite > UserTurnWidget * {
 	color: #DEE1E5;
-	background-color: #26282B;
+	background-color: #1E1F22;
 }
 
 /* Chat history list items - dark theme */

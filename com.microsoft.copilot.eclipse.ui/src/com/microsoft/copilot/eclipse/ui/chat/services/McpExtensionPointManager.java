@@ -51,6 +51,7 @@ public class McpExtensionPointManager {
   private static final String EXTENSION_POINT_ID = "com.microsoft.copilot.eclipse.ui.mcpRegistration";
   private static final String ELEMENT_PROVIDER = "provider";
   private static final String ATTRIBUTE_CLASS = "class";
+  private static final String REDACTED_VALUE = "<redacted>";
 
   private String approvedExtMcpServers;
   private Map<String, McpRegistrationInfo> extMcpInfoMap = new HashMap<>(); // Key: Plugin-Id(Bundle)
@@ -280,8 +281,8 @@ public class McpExtensionPointManager {
       McpRegistrationInfo mcpRegistrationInfo = entry.getValue();
       McpRegistrationInfo storedInfo = existingExtMcpInfoMap.get(contributorName);
       if (storedInfo != null) {
-        String storedMcpServersJson = storedInfo.getMcpServersAsJson();
-        String currentMcpServersJson = mcpRegistrationInfo.getMcpServersAsJson();
+        String storedMcpServersJson = storedInfo.getComparableMcpServersAsJson();
+        String currentMcpServersJson = mcpRegistrationInfo.getComparableMcpServersAsJson();
         if (currentMcpServersJson.equals(storedMcpServersJson)) {
           mcpRegistrationInfo.setApproved(storedInfo.isApproved());
         } else {
@@ -326,7 +327,7 @@ public class McpExtensionPointManager {
 
   private void persistExtMcpInfo(Map<String, McpRegistrationInfo> extMcpInfoMap) {
     IPreferenceStore preferenceStore = CopilotUi.getPlugin().getPreferenceStore();
-    String extMcpInfo = gson.toJson(extMcpInfoMap);
+    String extMcpInfo = gson.toJson(sanitizeExtMcpInfo(extMcpInfoMap));
     preferenceStore.setValue(Constants.MCP_EXTENSION_POINT_CONTRIB, extMcpInfo);
     // Necessary for persistence
     try {
@@ -334,6 +335,39 @@ public class McpExtensionPointManager {
     } catch (BackingStoreException e) {
       CopilotCore.LOGGER.error("Failed to flush preferences to disk", e);
     }
+  }
+
+  private Map<String, McpRegistrationInfo> sanitizeExtMcpInfo(Map<String, McpRegistrationInfo> extMcpInfoMap) {
+    Map<String, McpRegistrationInfo> sanitized = new HashMap<>();
+    extMcpInfoMap.forEach((key, value) -> sanitized.put(key, new McpRegistrationInfo(value.isTrusted,
+        value.isApproved, value.pluginDisplayName, sanitizeMap(value.mcpServers))));
+    return sanitized;
+  }
+
+  private static Map<String, Object> sanitizeMap(Map<String, Object> value) {
+    if (value == null) {
+      return Collections.emptyMap();
+    }
+    Map<String, Object> sanitized = new HashMap<>();
+    value.forEach((key, childValue) -> sanitized.put(key, sanitizeValue(key, childValue)));
+    return sanitized;
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Object sanitizeValue(String key, Object value) {
+    if (isSensitiveKey(key)) {
+      return REDACTED_VALUE;
+    }
+    if (value instanceof Map<?, ?> map) {
+      return sanitizeMap((Map<String, Object>) map);
+    }
+    return value;
+  }
+
+  private static boolean isSensitiveKey(String key) {
+    String upperKey = key == null ? "" : key.toUpperCase();
+    return upperKey.contains("SECRET") || upperKey.contains("TOKEN") || upperKey.contains("PASSWORD")
+        || upperKey.equals("ANYPOINT_CLIENT_ID") || upperKey.endsWith("_CLIENT_ID");
   }
 
   public String getApprovedExtMcpServers() {
@@ -389,6 +423,21 @@ public class McpExtensionPointManager {
       Gson gson = new Gson();
       Map<String, Object> wrapper = new HashMap<>();
       wrapper.put("servers", mcpServers);
+      return gson.toJson(wrapper);
+    }
+
+    /**
+     * Get MCP servers as JSON with sensitive values redacted for persistence comparison.
+     *
+     * @return JSON string representation of the redacted MCP servers
+     */
+    public String getComparableMcpServersAsJson() {
+      if (mcpServers == null || mcpServers.isEmpty()) {
+        return null;
+      }
+      Gson gson = new Gson();
+      Map<String, Object> wrapper = new HashMap<>();
+      wrapper.put("servers", sanitizeMap(mcpServers));
       return gson.toJson(wrapper);
     }
   }

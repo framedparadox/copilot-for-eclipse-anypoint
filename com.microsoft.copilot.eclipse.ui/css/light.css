@@ -45,7 +45,7 @@
 #chat-top-banner,
 #chat-top-banner * {
 	color: #808080;
-	background-color: #F8F8F8;
+	background-color: #FFFFFF;
 }
 
 #chat-container,
@@ -53,6 +53,8 @@
 #chat-container > LoadingViewer *,
 #chat-container > BeforeLoginWelcomeViewer,
 #chat-container > BeforeLoginWelcomeViewer *,
+#chat-container > NoSubscriptionViewer,
+#chat-container > NoSubscriptionViewer *,
 #chat-content-wrapper,
 #chat-content-wrapper > ChatHistoryViewer,
 #chat-content-wrapper > ChatHistoryViewer *,
@@ -61,12 +63,12 @@
 #chat-content-wrapper > AgentModeViewer,
 #chat-content-wrapper  > AgentModeViewer *{
 	color: #808080;
-	background-color: #F8F8F8;
+	background-color: #FFFFFF;
 }
 
 #chat-action-bar-wrapper,
 #chat-action-bar-wrapper * {
-	background-color: #F8F8F8;
+	background-color: #FFFFFF;
 }
 
 #chat-action-bar,
@@ -79,8 +81,8 @@
 }
 
 #chat-container > HandoffContainer,
-#chat-container > HandoffContainer > * {
-	background-color: #F8F8F8;
+#chat-container > HandoffContainer * {
+	background-color: #FFFFFF;
 }
 #chat-container > HandoffContainer > Label.text-secondary {
 	color: #808080;
@@ -127,20 +129,25 @@
 #chat-content-viewer > Composite,
 #chat-content-viewer > Composite * {
     color: #000000;
-    background-color: #F8F8F8;
+    background-color: #F1F1F2;
 }
 
 #chat-content-viewer > Composite > UserTurnWidget,
 #chat-content-viewer > Composite > UserTurnWidget * {
 	color: #000000;
-	background-color: #EFEFEE;
+	background-color: #F1F1F2;
+}
+
+#chat-content-viewer StyledText.chat-message-text,
+#chat-content-viewer .chat-message-text {
+	background-color: #F1F1F2;
 }
 
 /* Chat history list items - light theme */
 #chat-history-viewer Composite.chat-history-item,
 #chat-history-viewer Composite.chat-history-item * {
 	color: #000000;           /* default/hover exit foreground */
-	background-color: #F8F8F8;/* default/hover exit background */
+	background-color: #FFFFFF;/* default/hover exit background */
 }
 
 /* Dropdown popup default state */
@@ -175,7 +182,7 @@
 #file-row,
 #file-row * {
 	color: #000000;           /* default foreground */
-	background-color: #F8F8F8;/* default background */
+	background-color: #FFFFFF;/* default background */
 }
 
 /* Hover state for file rows */
