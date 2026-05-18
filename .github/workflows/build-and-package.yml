@@ -38,7 +38,9 @@ jobs:
 
       - name: Install Copilot agent
         working-directory: com.microsoft.copilot.eclipse.core/copilot-agent
-        run: npm i -f
+        run: |
+          npm install
+          cp -r node_modules/@github/copilot-language-server/dist ./dist
 
       - name: Make mvnw executable
         run: chmod +x ./mvnw
