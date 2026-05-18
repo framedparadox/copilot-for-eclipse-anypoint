@@ -7,7 +7,6 @@ on:
 
 env:
   MAVEN_OPTS: -Xmx2g
-  TIMESTAMP: ${{ github.run_number }}-${{ github.sha }}
 
 jobs:
   build:
@@ -15,6 +14,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Extract plugin version
+        run: |
+          VERSION=$(grep -oP '(?<=<copilot-plugin-version>)[^<]+' pom.xml)
+          echo "COPILOT_PLUGIN_VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Set up Java 21 (Temurin)
         uses: actions/setup-java@v4
@@ -52,20 +56,20 @@ jobs:
       - name: Prepare build artifact
         run: |
           mkdir -p build
-          SRC=com.microsoft.copilot.eclipse.repository/target/com.microsoft.copilot.eclipse.repository-0.18.0-SNAPSHOT.zip
+          SRC=com.microsoft.copilot.eclipse.repository/target/com.microsoft.copilot.eclipse.repository-0.17.1-SNAPSHOT.zip
           if [ ! -f "$SRC" ]; then
             echo "ERROR: Expected ZIP not found at $SRC"
             ls -la com.microsoft.copilot.eclipse.repository/target || true
             exit 1
           fi
-          OUT=build/github-copilot-eclipse-anypoint-${TIMESTAMP}.zip
+          OUT=build/github-copilot-eclipse-anypoint-${COPILOT_PLUGIN_VERSION}.zip
           cp -f "$SRC" "$OUT"
           sha256sum "$OUT" | awk '{print $1 "  " $2}' > "${OUT}.sha256"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: copilot-anypoint-zip-${{ github.run_number }}
+          name: github-copilot-for-anypoint-${{ env.COPILOT_PLUGIN_VERSION }}
           path: |
             build/*.zip
             build/*.sha256
@@ -75,9 +79,9 @@ jobs:
       #   id: create_release
       #   uses: softprops/action-gh-release@v1
       #   with:
-      #     tag_name: "build-${{ github.run_number }}"
-      #     name: "build-${{ github.run_number }}"
-      #     body: "Automated build ${{ github.run_number }}"
+      #     tag_name: "build-${{ env.COPILOT_PLUGIN_VERSION }}"
+      #     name: "build-${{ env.COPILOT_PLUGIN_VERSION }}"
+      #     body: "Automated build ${{ env.COPILOT_PLUGIN_VERSION }}"
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       #
