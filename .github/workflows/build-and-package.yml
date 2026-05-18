@@ -56,12 +56,13 @@ jobs:
       - name: Prepare build artifact
         run: |
           mkdir -p build
-          SRC=com.microsoft.copilot.eclipse.repository/target/com.microsoft.copilot.eclipse.repository-0.17.1-SNAPSHOT.zip
+          SRC=com.microsoft.copilot.eclipse.repository/target/com.microsoft.copilot.eclipse.repository-${COPILOT_PLUGIN_VERSION}.zip
           if [ ! -f "$SRC" ]; then
             echo "ERROR: Expected ZIP not found at $SRC"
             ls -la com.microsoft.copilot.eclipse.repository/target || true
             exit 1
           fi
+          find build/ -maxdepth 1 -name "github-copilot-eclipse-anypoint-*.zip" -delete 2>/dev/null || true
           OUT=build/github-copilot-eclipse-anypoint-${COPILOT_PLUGIN_VERSION}.zip
           cp -f "$SRC" "$OUT"
           sha256sum "$OUT" | awk '{print $1 "  " $2}' > "${OUT}.sha256"
@@ -74,20 +75,14 @@ jobs:
             build/*.zip
             build/*.sha256
 
-      # Optional: publish as a GitHub Release (uncomment to enable)
-      # - name: Create Release
-      #   id: create_release
-      #   uses: softprops/action-gh-release@v1
+      # - name: Create GitHub Release
+      #   uses: softprops/action-gh-release@v2
       #   with:
-      #     tag_name: "build-${{ env.COPILOT_PLUGIN_VERSION }}"
-      #     name: "build-${{ env.COPILOT_PLUGIN_VERSION }}"
-      #     body: "Automated build ${{ env.COPILOT_PLUGIN_VERSION }}"
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #
-      # - name: Upload Release Asset
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     files: build/github-copilot-eclipse-anypoint-${TIMESTAMP}.zip
+      #     tag_name: "v${{ env.COPILOT_PLUGIN_VERSION }}"
+      #     name: "v${{ env.COPILOT_PLUGIN_VERSION }}"
+      #     body: "Release ${{ env.COPILOT_PLUGIN_VERSION }}"
+      #     files: |
+      #       build/*.zip
+      #       build/*.sha256
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

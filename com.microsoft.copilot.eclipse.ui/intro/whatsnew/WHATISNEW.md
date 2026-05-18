@@ -1,4 +1,4 @@
-# GitHub Copilot 0.18.0 Release Notes
+# GitHub Copilot 0.17.1 Release Notes
 
 ### Prepare for the Upcoming Usage-Based Billing
 Starting from this version, we have added internal support for the [upcoming usage-based billing experience](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/), including experience updates to the usage panel, usage notifications, and model picker. These changes will become visible once usage-based billing is rolled out.
