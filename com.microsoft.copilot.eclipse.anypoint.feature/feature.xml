@@ -2,7 +2,7 @@
 <feature
       id="com.microsoft.copilot.eclipse.anypoint.feature"
       label="GitHub Copilot for Anypoint Studio"
-      version="0.18.0.qualifier"
+      version="0.17.1.qualifier"
       provider-name="GitHub Copilot">
 
    <description>
