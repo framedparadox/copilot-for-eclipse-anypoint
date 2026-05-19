@@ -65,26 +65,23 @@ jobs:
             ls -la com.microsoft.copilot.eclipse.repository/target || true
             exit 1
           fi
-          if ! unzip -l "$SRC" | grep -q 'content.jar'; then
-            echo "ERROR: p2 repository ZIP is missing content.jar"
+          if ! unzip -l "$SRC" | grep -qE 'content\.(jar|xml|xml\.xz)|p2\.index'; then
+            echo "ERROR: p2 repository ZIP is missing p2 metadata (content.jar / content.xml.xz / p2.index)"
             unzip -l "$SRC"
             exit 1
           fi
-          find build/ -maxdepth 1 -name "github-copilot-eclipse-anypoint-*.zip" -delete 2>/dev/null || true
-          OUT=build/github-copilot-eclipse-anypoint-${COPILOT_DISPLAY_VERSION}.zip
+          find build/ -maxdepth 1 -name "github-copilot-for-anypoint-*.zip" -delete 2>/dev/null || true
+          OUT=build/github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}.zip
           cp -f "$SRC" "$OUT"
           sha256sum "$OUT" | awk '{print $1 "  " $2}' > "${OUT}.sha256"
-          mkdir -p build/site
-          unzip -q "$SRC" -d build/site
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}
           path: |
-            build/site/
-            build/*.zip
-            build/*.sha256
+            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip
+            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip.sha256
 
       # - name: Create GitHub Release
       #   uses: softprops/action-gh-release@v2
