@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -130,15 +131,10 @@ public class ConversationDataFactory {
     if (agentRounds == null || agentRounds.isEmpty()) {
       return;
     }
-    boolean thinkingRoundUpdated = false;
     for (AgentRound round : agentRounds) {
-      EditAgentRoundData existingRound = thinkingRoundUpdated
-          ? null : findRoundByThinkingBlockId(reply.getEditAgentRounds(), thinkingBlockId);
-      if (existingRound != null) {
-        thinkingRoundUpdated = true;
-      }
+      EditAgentRoundData existingRound = findRoundById(reply.getEditAgentRounds(), round.getRoundId());
       if (existingRound == null) {
-        existingRound = findRoundById(reply.getEditAgentRounds(), round.getRoundId());
+        existingRound = findThinkingPlaceholderRound(reply.getEditAgentRounds(), thinkingBlockId);
       }
       if (existingRound == null) {
         EditAgentRoundData er = convertAgentRoundToEditAgentRoundData(round);
@@ -341,6 +337,20 @@ public class ConversationDataFactory {
     for (EditAgentRoundData round : rounds) {
       ThinkingBlockData thinkingBlock = round.getThinkingBlock();
       if (thinkingBlock != null && thinkingBlockId.equals(thinkingBlock.getId())) {
+        return round;
+      }
+    }
+    return null;
+  }
+
+  private EditAgentRoundData findThinkingPlaceholderRound(List<EditAgentRoundData> rounds, String thinkingBlockId) {
+    if (rounds == null || StringUtils.isBlank(thinkingBlockId)) {
+      return null;
+    }
+    for (EditAgentRoundData round : rounds) {
+      ThinkingBlockData thinkingBlock = round.getThinkingBlock();
+      if (Objects.equals(round.getRoundId(), SYNTHETIC_ROUND_ID) && thinkingBlock != null
+          && thinkingBlockId.equals(thinkingBlock.getId())) {
         return round;
       }
     }
