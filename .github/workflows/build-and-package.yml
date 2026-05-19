@@ -18,7 +18,10 @@ jobs:
       - name: Extract plugin version
         run: |
           VERSION=$(grep -oP '(?<=<copilot-plugin-version>)[^<]+' pom.xml)
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+          DISPLAY_VERSION="${VERSION/-SNAPSHOT/-$TIMESTAMP}"
           echo "COPILOT_PLUGIN_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "COPILOT_DISPLAY_VERSION=$DISPLAY_VERSION" >> $GITHUB_ENV
 
       - name: Set up Java 21 (Temurin)
         uses: actions/setup-java@v4
@@ -63,14 +66,14 @@ jobs:
             exit 1
           fi
           find build/ -maxdepth 1 -name "github-copilot-eclipse-anypoint-*.zip" -delete 2>/dev/null || true
-          OUT=build/github-copilot-eclipse-anypoint-${COPILOT_PLUGIN_VERSION}.zip
+          OUT=build/github-copilot-eclipse-anypoint-${COPILOT_DISPLAY_VERSION}.zip
           cp -f "$SRC" "$OUT"
           sha256sum "$OUT" | awk '{print $1 "  " $2}' > "${OUT}.sha256"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: github-copilot-for-anypoint-${{ env.COPILOT_PLUGIN_VERSION }}
+          name: github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}
           path: |
             build/*.zip
             build/*.sha256
