@@ -18,10 +18,11 @@
          version="0.0.0"/>
 
    <requires>
-      <import plugin="org.eclipse.mylyn.wikitext.markdown.ui"/>
-      <import plugin="org.eclipse.mylyn.wikitext.html"/>
-      <import plugin="org.eclipse.wildwebdeveloper.embedder.node"/>
-      <import plugin="org.eclipse.jdt.debug"/>
+      <import plugin="org.eclipse.mylyn.wikitext"/>
+      <import plugin="org.eclipse.mylyn.wikitext.markdown"/>
+      <import plugin="org.eclipse.mylyn.wikitext.ui"/>
+      <import plugin="org.eclipse.wildwebdeveloper.embedder.node" optional="true"/>
+      <import plugin="org.eclipse.jdt.debug" optional="true"/>
    </requires>
 
    <plugin
