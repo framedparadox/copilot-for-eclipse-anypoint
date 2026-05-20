@@ -73,8 +73,10 @@ function main() {
     try {
       copyFile(platform.source, platform.target);
     } catch (error) {
-      console.error(`Failed to copy ${platform.name} distribution:`, error.message);
-      process.exit(1);
+      // Don't fail the whole install if a platform-specific binary isn't present
+      // (npm will only install the packages matching the current host or optional deps).
+      console.warn(`Skipping ${platform.name} distribution: ${error.message}`);
+      continue;
     }
   }
 }

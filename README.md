@@ -1,4 +1,4 @@
-# GitHub Copilot for Eclipse
+# GitHub Copilot for Eclipse (MuleSoft Anypoint Studio)
 
 GitHub Copilot for Eclipse brings AI-assisted coding to the Eclipse IDE with these core capabilities:
 
@@ -7,6 +7,7 @@ GitHub Copilot for Eclipse brings AI-assisted coding to the Eclipse IDE with the
 - **Agent Mode** for conversational help and more autonomous, project-aware assistance.
 - **Model Context Protocol (MCP)** integration to connect Copilot with external tools and services.
 - **Advanced Agentic Capabilities** include Custom Agents, Isolated Subagents, and Plan Agent, with more agentic capabilities coming soon.
+- **Anypoint Studio Integration** connects Copilot with the official MuleSoft MCP server for AI-assisted Mule application development directly in Anypoint Studio.
 
 
 ## Getting access to GitHub Copilot
@@ -76,6 +77,44 @@ MCP support enables integrating external tools and services into Copilot workflo
 
 For other available features in Eclipse, see the [Copilot feature matrix](https://docs.github.com/en/copilot/reference/copilot-feature-matrix?tool=eclipse).
 
+## Anypoint Studio Integration
+
+This plugin includes a dedicated integration for [MuleSoft Anypoint Studio](https://www.mulesoft.com/platform/studio), enabling AI-assisted Mule application development through Copilot's Agent Mode and MCP.
+
+### MuleSoft MCP Server
+
+The plugin can automatically register the official [`mulesoft-mcp-server`](https://www.npmjs.com/package/mulesoft-mcp-server) as an MCP server in Copilot Agent Mode. This unlocks MuleSoft-native tools such as:
+
+- Creating and validating Mule projects
+- Generating and implementing API specs (RAML/OAS)
+- Running DataWeave scripts and generating sample data
+- Creating, running, and reviewing MUnit tests
+- Searching Anypoint Exchange assets
+- Running local Mule applications
+
+### Configuring MuleSoft MCP
+
+1. In Anypoint Studio, open **Window → Preferences → Copilot → MuleSoft MCP**.
+2. Check **Enable MuleSoft MCP Server registration**.
+3. Enter your **Anypoint Platform Connected App** credentials:
+   - **Client ID** – the connected app client ID.
+   - **Client Secret** – stored securely in Eclipse secure storage.
+   - **Region** *(optional)* – one of `PROD_US`, `PROD_EU`, `PROD_CA`, or `PROD_JP`. Defaults to `PROD_US` when omitted.
+4. Click **Apply and Close**.
+
+> **Tip:** If any field is left blank, the integration falls back to the `ANYPOINT_CLIENT_ID`, `ANYPOINT_CLIENT_SECRET`, and `ANYPOINT_REGION` environment variables set in the Studio process environment.
+
+### MuleSoft Agent Template
+
+A pre-built agent template (`mulesoft-agent.agent.md`) is bundled with the plugin. It configures a specialized Copilot agent scoped to MuleSoft development workflows, automatically wiring the relevant MuleSoft MCP tools alongside built-in Copilot capabilities such as project scanning, code review, and security review.
+
+### Prerequisites for MuleSoft MCP
+
+- [Node.js](https://nodejs.org/) (includes `npx`) must be available on the `PATH` used by the Anypoint Studio process.
+- A [MuleSoft Connected App](https://docs.mulesoft.com/access-management/connected-apps-overview) with the necessary scopes for the tools you intend to use.
+
+---
+
 ## Privacy and responsible use
 
 We follow responsible practices in accordance with our
@@ -112,6 +151,8 @@ trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
+
+For clarity: product and company names used in this repository (including but not limited to "GitHub", "GitHub Copilot", "Microsoft", "MuleSoft", and "Anypoint Studio") are the trademarks or registered trademarks of their respective owners. The presence of these names or logos in this project does not imply endorsement, sponsorship, or formal affiliation by the trademark owners.
 
 ## License
 

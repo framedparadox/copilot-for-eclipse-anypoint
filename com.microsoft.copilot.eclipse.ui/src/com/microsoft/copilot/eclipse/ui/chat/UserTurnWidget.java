@@ -22,7 +22,9 @@ import org.eclipse.swt.widgets.Label;
 import com.microsoft.copilot.eclipse.ui.chat.services.AvatarService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
+import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
+import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
  * A custom widget that displays a turn for the user.
@@ -110,6 +112,10 @@ public class UserTurnWidget extends BaseTurnWidget {
     StyledText styledText = this.currentTextBlock.getTextWidget();
     styledText.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, true, false));
     styledText.setEditable(false);
+    styledText.setData(CssConstants.CSS_CLASS_NAME_KEY, "chat-message-text");
+    if (!UiUtils.isDarkTheme()) {
+      styledText.setBackground(styledText.getDisplay().getSystemColor(SWT.COLOR_WIDGET_BACKGROUND));
+    }
 
     // Register for chat font updates via centralized service
     serviceManager.getChatFontService().registerControl(styledText);

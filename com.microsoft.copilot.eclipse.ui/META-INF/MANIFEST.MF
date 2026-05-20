@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: com.microsoft.copilot.eclipse.ui
 Bundle-SymbolicName: com.microsoft.copilot.eclipse.ui;singleton:=true
-Bundle-Version: 0.18.0.qualifier
+Bundle-Version: 0.17.1.qualifier
 Bundle-Vendor: GitHub Copilot
 Bundle-Localization: plugin
 Export-Package: com.microsoft.copilot.eclipse.ui,
@@ -43,9 +43,9 @@ Require-Bundle: com.microsoft.copilot.eclipse.core;bundle-version="0.15.0",
  org.eclipse.tm4e.ui;bundle-version="0.7.1",
  org.eclipse.tm4e.core;bundle-version="0.6.1",
  org.eclipse.tm4e.registry;bundle-version="0.6.5",
- org.eclipse.mylyn.wikitext;bundle-version="3.0.48",
- org.eclipse.mylyn.wikitext.markdown;bundle-version="3.0.48",
- org.eclipse.mylyn.wikitext.ui;bundle-version="3.0.48",
+ org.eclipse.mylyn.wikitext;bundle-version="[3.0.48,4.5.0)",
+ org.eclipse.mylyn.wikitext.markdown;bundle-version="[3.0.48,4.5.0)",
+ org.eclipse.mylyn.wikitext.ui;bundle-version="[3.0.48,4.5.0)",
  org.eclipse.core.databinding.observable;bundle-version="1.13.100",
  org.eclipse.jface.databinding;bundle-version="1.15.100",
  com.google.gson;bundle-version="2.10.1",

@@ -445,6 +445,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       }
 
       this.sendToJobButton = UiUtils.createIconButton(this.bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
+      UiUtils.useParentBackgroundForIconButton(this.sendToJobButton);
 
       boolean hasText = !StringUtils.isBlank(this.inputTextViewer.getContent());
       this.sendToJobButton.setEnabled(hasText);
@@ -468,6 +469,7 @@ public class ActionBar extends Composite implements NewConversationListener {
       this.sendImage = UiUtils.buildImageFromPngPath("/icons/chat/send.png");
       this.sendDisabledImage = UiUtils.buildImageFromPngPath("/icons/chat/send_disabled.png");
       this.btnMsgToggle = UiUtils.createIconButton(bottomRightButtonsComposite, SWT.PUSH | SWT.FLAT);
+      UiUtils.useParentBackgroundForIconButton(this.btnMsgToggle);
       boolean isEnabled = !StringUtils.isBlank(this.inputTextViewer.getContent());
       this.btnMsgToggle.setEnabled(isEnabled);
       this.btnMsgToggle.setImage(isEnabled ? this.sendImage : this.sendDisabledImage);
@@ -512,6 +514,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
   private void setUpModelPicker(Composite parent) {
     this.modelPickerButton = new DropdownButton(parent, SWT.NONE);
+    this.modelPickerButton.setUseParentBackground(true);
     this.modelPickerButton.setLayoutData(new GridData(SWT.RIGHT, SWT.FILL, true, false));
     ModelService modelService = chatServiceManager.getModelService();
     modelService.bindModelPicker(modelPickerButton);
@@ -519,6 +522,7 @@ public class ActionBar extends Composite implements NewConversationListener {
 
   private void setUpChatModePicker(Composite parent) {
     this.modePickerButton = new DropdownButton(parent, SWT.NONE);
+    this.modePickerButton.setUseParentBackground(true);
     this.modePickerButton.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, false));
     this.modePickerButton.setToolTipText(Messages.chat_actionBar_modePicker_Tooltip);
     this.modePickerButton.setAccessibilityName("chat mode picker");
@@ -548,6 +552,7 @@ public class ActionBar extends Composite implements NewConversationListener {
     }
 
     this.mcpToolButton = UiUtils.createIconButton(parent, SWT.PUSH | SWT.FLAT);
+    UiUtils.useParentBackgroundForIconButton(this.mcpToolButton);
     this.chatServiceManager.getMcpConfigService().bindWithMcpToolButton(mcpToolButton, mcpToolImage,
         mcpToolDisabledImage, mcpToolDetectedImage);
 
