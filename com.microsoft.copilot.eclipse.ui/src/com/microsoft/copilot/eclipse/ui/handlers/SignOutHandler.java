@@ -51,10 +51,10 @@ public class SignOutHandler extends AbstractHandler {
   }
 
   private void handleSignOutException(Shell shell, Exception e) {
+    CopilotCore.LOGGER.error(e);
     String msg = Messages.signOutHandler_msgDialog_signOutFailed;
     if (StringUtils.isNotBlank(e.getMessage())) {
       msg += " " + e.getMessage();
-      CopilotCore.LOGGER.error(e);
     }
     MessageDialog.openError(shell, Messages.signOutHandler_msgDialog_signOutFailedFailure, msg);
   }

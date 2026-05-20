@@ -6,6 +6,8 @@ package com.microsoft.copilot.eclipse.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
@@ -107,15 +109,24 @@ class AuthStatusManagerTests {
   }
 
   @Test
-  void testCheckStatusError() {
-    CompletableFuture<CopilotStatusResult> future = new CompletableFuture<>();
-    future.completeExceptionally(new CompletionException(new Exception("Some other error")));
+  void testSignOutRetriesOnCancellationException() throws InterruptedException, ExecutionException {
+    CopilotStatusResult mockResult = mock(CopilotStatusResult.class);
+    when(mockResult.getStatus()).thenReturn(CopilotStatusResult.NOT_SIGNED_IN);
 
-    when(mockConnection.checkStatus(false)).thenReturn(future);
+    CompletableFuture<CopilotStatusResult> cancelledFuture = new CompletableFuture<>();
+    cancelledFuture.cancel(true);
 
-    authStatusManager.checkStatus();
+    when(mockConnection.signOut())
+        .thenReturn(cancelledFuture)
+        .thenReturn(CompletableFuture.completedFuture(mockResult));
 
-    assertEquals(CopilotStatusResult.ERROR, authStatusManager.getCopilotStatus());
+    CopilotStatusResult result = authStatusManager.signOut();
+
+    verify(mockConnection, times(2)).signOut();
+    assertTrue(authStatusManager.getUserName().isEmpty());
+    assertEquals(CopilotStatusResult.NOT_SIGNED_IN, authStatusManager.getCopilotStatus());
+    assertEquals(mockResult, result);
   }
 
 }
+

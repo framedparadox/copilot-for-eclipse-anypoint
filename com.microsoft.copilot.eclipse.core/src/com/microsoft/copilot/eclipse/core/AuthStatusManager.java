@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.core;
 
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -89,7 +90,17 @@ public class AuthStatusManager {
    * @throws InterruptedException if the sign out process is interrupted
    */
   public CopilotStatusResult signOut() throws InterruptedException, ExecutionException {
-    CopilotStatusResult result = connection.signOut().get();
+    try {
+      return applySignOutResult(connection.signOut().get());
+    } catch (CancellationException e) {
+      // The sign-out request was cancelled, likely because the language server restarted.
+      // Retry once to allow the server to finish restarting and complete the sign-out.
+      CopilotCore.LOGGER.error("Sign out request was cancelled; retrying", e);
+      return applySignOutResult(connection.signOut().get());
+    }
+  }
+
+  private CopilotStatusResult applySignOutResult(CopilotStatusResult result) {
     setCopilotUser(result.getUser());
     setCopilotStatus(result.getStatus());
     return result;
