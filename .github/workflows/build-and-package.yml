@@ -11,6 +11,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -83,14 +85,19 @@ jobs:
             build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip
             build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip.sha256
 
-      # - name: Create GitHub Release
-      #   uses: softprops/action-gh-release@v2
-      #   with:
-      #     tag_name: "v${{ env.COPILOT_PLUGIN_VERSION }}"
-      #     name: "v${{ env.COPILOT_PLUGIN_VERSION }}"
-      #     body: "Release ${{ env.COPILOT_PLUGIN_VERSION }}"
-      #     files: |
-      #       build/*.zip
-      #       build/*.sha256
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ env.COPILOT_DISPLAY_VERSION }}"
+          name: "GitHub Copilot for Anypoint Studio v${{ env.COPILOT_DISPLAY_VERSION }}"
+          prerelease: true
+          body: |
+            Pre-release build of GitHub Copilot for Anypoint Studio.
+
+            **Install in Anypoint Studio:**
+            Download `github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip` and add it as a local p2 update site.
+          files: |
+            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip
+            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
