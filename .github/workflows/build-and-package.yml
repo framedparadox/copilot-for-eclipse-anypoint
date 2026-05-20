@@ -2,7 +2,7 @@ name: Build and Package (p2 ZIP)
 
 on:
   push:
-    branches: [ build, dev/anypoint-studio ]
+    branches: [ build ]
   workflow_dispatch:
 
 env:
