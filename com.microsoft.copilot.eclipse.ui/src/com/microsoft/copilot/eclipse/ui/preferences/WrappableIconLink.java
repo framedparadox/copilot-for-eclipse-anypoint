@@ -137,13 +137,18 @@ public class WrappableIconLink extends Composite {
         icon.dispose();
       }
     });
+
+    PreferencePageUtils.inheritParentBackground(this);
   }
 
   /**
    * Sets up the resize listener to dynamically adjust the link width.
    */
   private void setupResizeListener() {
-    parent.addControlListener(ControlListener.controlResizedAdapter(e -> updateLinkWidth()));
+    parent.addControlListener(ControlListener.controlResizedAdapter(e -> {
+      PreferencePageUtils.inheritParentBackground(this);
+      updateLinkWidth();
+    }));
   }
 
   /**

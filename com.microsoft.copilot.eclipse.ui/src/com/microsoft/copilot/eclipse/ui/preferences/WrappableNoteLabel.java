@@ -96,13 +96,18 @@ public class WrappableNoteLabel extends Composite {
         boldFont.dispose();
       }
     });
+
+    PreferencePageUtils.inheritParentBackground(this);
   }
 
   /**
    * Sets up the resize listener to dynamically adjust the content label width.
    */
   private void setupResizeListener() {
-    parentToWatch.addControlListener(ControlListener.controlResizedAdapter(e -> updateContentLabelWidth()));
+    parentToWatch.addControlListener(ControlListener.controlResizedAdapter(e -> {
+      PreferencePageUtils.inheritParentBackground(this);
+      updateContentLabelWidth();
+    }));
   }
 
   /**
