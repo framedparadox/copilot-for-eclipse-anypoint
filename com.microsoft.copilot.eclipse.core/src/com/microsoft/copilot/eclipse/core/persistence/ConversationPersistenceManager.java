@@ -20,6 +20,7 @@ import org.eclipse.core.resources.IResource;
 import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatProgressValue;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatStepStatus;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
@@ -28,6 +29,7 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.EditAgentR
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ReplyData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockData;
 import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ThinkingBlockState;
+import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallData;
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData.MessageData;
 
 /**
@@ -271,6 +273,41 @@ public class ConversationPersistenceManager {
   }
 
   /**
+   * Marks cached running tool calls as cancelled, then persists the cached conversation to disk.
+   *
+   * @param conversationId the ID of the cached conversation to persist
+   * @return a future that completes when the cached conversation has been persisted
+   */
+  public CompletableFuture<Void> markRunningToolCallsCancelledAndPersist(String conversationId) {
+    if (StringUtils.isBlank(conversationId)) {
+      return CompletableFuture.completedFuture(null);
+    }
+
+    ConversationData conversationData;
+    lock.writeLock().lock();
+    try {
+      conversationData = conversationCache.get(conversationId);
+      if (conversationData == null) {
+        return CompletableFuture.completedFuture(null);
+      }
+      markRunningToolCallsCancelled(conversationData);
+    } finally {
+      lock.writeLock().unlock();
+    }
+
+    return CompletableFuture.runAsync(() -> {
+      lock.writeLock().lock();
+      try {
+        persistAndCacheConversation(conversationData);
+      } catch (IOException e) {
+        CopilotCore.LOGGER.error("Failed to persist cancelled tool calls for conversation: " + conversationId, e);
+      } finally {
+        lock.writeLock().unlock();
+      }
+    });
+  }
+
+  /**
    * Updates a conversation with progress data. This method is synchronous and handles all IO operations internally.
    */
   public CompletableFuture<ConversationData> updateConversationProgress(String conversationId,
@@ -496,6 +533,28 @@ public class ConversationPersistenceManager {
   private void persistAndCacheConversation(ConversationData conversation) throws IOException {
     persistenceService.saveConversation(conversation);
     conversationCache.put(conversation.getConversationId(), conversation);
+  }
+
+  private void markRunningToolCallsCancelled(ConversationData conversationData) {
+    if (conversationData.getTurns() == null) {
+      return;
+    }
+    for (AbstractTurnData turn : conversationData.getTurns()) {
+      if (!(turn instanceof CopilotTurnData copilotTurnData) || copilotTurnData.getReply() == null
+          || copilotTurnData.getReply().getEditAgentRounds() == null) {
+        continue;
+      }
+      for (EditAgentRoundData round : copilotTurnData.getReply().getEditAgentRounds()) {
+        if (round.getToolCalls() == null) {
+          continue;
+        }
+        for (ToolCallData toolCall : round.getToolCalls()) {
+          if (toolCall != null && ChatStepStatus.RUNNING.equalsIgnoreCase(toolCall.getStatus())) {
+            toolCall.setStatus(ChatStepStatus.CANCELLED);
+          }
+        }
+      }
+    }
   }
 
   /**
