@@ -37,10 +37,12 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
     Composite container = new Composite(parent, SWT.NONE);
     container.setLayout(new GridLayout(2, false));
     container.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    container.setBackground(parent.getBackground());
 
     enabledButton = new Button(container, SWT.CHECK);
     enabledButton.setText("Enable MuleSoft MCP Server registration");
     enabledButton.setLayoutData(spanTwoColumns());
+    useParentBackground(enabledButton);
 
     createLabel(container, "Client ID:");
     clientIdText = createText(container, SWT.BORDER);
@@ -56,6 +58,7 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
     note.setText("Credentials are stored in Eclipse secure storage. If a field is blank, the integration also checks "
         + "ANYPOINT_CLIENT_ID, ANYPOINT_CLIENT_SECRET, and ANYPOINT_REGION from the Studio process environment.");
     note.setLayoutData(spanTwoColumns());
+    useParentBackground(note);
 
     loadSettings();
     return container;
@@ -84,6 +87,7 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
   private static void createLabel(Composite container, String text) {
     Label label = new Label(container, SWT.NONE);
     label.setText(text);
+    useParentBackground(label);
   }
 
   private static Text createText(Composite container, int style) {
@@ -96,5 +100,12 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
     GridData gridData = new GridData(SWT.FILL, SWT.CENTER, true, false);
     gridData.horizontalSpan = 2;
     return gridData;
+  }
+
+  private static void useParentBackground(Control control) {
+    if (control != null && !control.isDisposed() && control.getParent() != null
+        && !control.getParent().isDisposed()) {
+      control.setBackground(control.getParent().getBackground());
+    }
   }
 }

@@ -10,8 +10,10 @@ import java.util.function.Consumer;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.PartInitException;
@@ -68,6 +70,7 @@ public final class PreferencePageUtils {
     link.setText(label);
     link.setToolTipText(tooltip);
     link.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false, 2, 1));
+    inheritParentBackground(link);
     link.addSelectionListener(new SelectionAdapter() {
       @Override
       public void widgetSelected(SelectionEvent e) {
@@ -98,5 +101,33 @@ public final class PreferencePageUtils {
    */
   private static void openPreferencePage(Shell shell, String preferenceId, SelectionEvent event) {
     PreferencesUtil.createPreferenceDialogOn(shell, preferenceId, null, event);
+  }
+
+  /**
+   * Applies a control's parent background to layout-only preference controls and their children.
+   *
+   * @param control the control whose background should match its parent
+   */
+  public static void inheritParentBackground(Control control) {
+    if (control == null || control.isDisposed() || control.getParent() == null
+        || control.getParent().isDisposed()) {
+      return;
+    }
+
+    applyBackground(control, control.getParent().getBackground());
+  }
+
+  private static void applyBackground(Control control, Color background) {
+    if (control == null || control.isDisposed() || background == null || background.isDisposed()) {
+      return;
+    }
+
+    control.setBackground(background);
+    if (control instanceof Composite composite) {
+      composite.setBackgroundMode(SWT.INHERIT_FORCE);
+      for (Control child : composite.getChildren()) {
+        applyBackground(child, background);
+      }
+    }
   }
 }
