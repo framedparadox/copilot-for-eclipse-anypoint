@@ -4,6 +4,8 @@ tools:
   - mule_project_scan
   - mule_security_review
   - api_schema_analyze
+  - mulesoft/list_api_instances
+  - mulesoft/manage_api_instance_policy
 ---
 # MuleSoft Security Review
 

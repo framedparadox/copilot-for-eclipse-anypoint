@@ -5,6 +5,10 @@ tools:
   - mule_code_review
   - mule_security_review
   - run_mule_maven_tests
+  - mulesoft/list_applications
+  - mulesoft/deploy_mule_application
+  - mulesoft/update_mule_application
+  - mulesoft/get_platform_insights
 ---
 # MuleSoft Deployment Readiness
 

@@ -3,6 +3,7 @@ mode: agent
 tools:
   - mule_project_scan
   - mule_code_review
+  - mule_read_transform
   - get_mule_project_errors
 ---
 # MuleSoft Code Review

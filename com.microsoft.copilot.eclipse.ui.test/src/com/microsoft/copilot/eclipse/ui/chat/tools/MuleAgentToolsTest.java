@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.ui.chat.tools;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -123,6 +124,125 @@ class MuleAgentToolsTest {
     assertTrue(output.contains("For each external connector, mock success and failure"));
   }
 
+  @Test
+  void transformToolsExposeExpectedToolMetadata() {
+    assertEquals("mule_read_transform", new MuleTransformReadTool().getToolInformation().getName());
+    assertEquals("mule_write_transform", new MuleTransformWriteTool().getToolInformation().getName());
+    assertTrue(new MuleTransformReadTool().getToolInformation().getDescription().contains("set-attributes"));
+    assertTrue(new MuleTransformWriteTool().getToolInformation().getDescription().contains("variable:name"));
+  }
+
+  @Test
+  void transformReadReturnsPayloadAttributesVariablesAndExternalDwl() throws Exception {
+    Path xml = createMuleProjectWithTransform(false);
+    LanguageModelToolResult[] results = new MuleTransformReadTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Map Accounts"), null).get();
+
+    assertEquals(ToolInvocationStatus.success, results[0].getStatus());
+    String output = results[0].getContent().get(0).getValue();
+    assertTrue(output.contains("target=payload"));
+    assertTrue(output.contains("target=attributes"));
+    assertTrue(output.contains("target=variable:customerId"));
+    assertTrue(output.contains("target=variable:externalVar"));
+    assertTrue(output.contains("resource=dw/external.dwl"));
+    assertTrue(output.contains("resourceStatus=resolved"));
+    assertTrue(output.contains("externalValue"));
+  }
+
+  @Test
+  void transformWriteUpdatesPayloadAttributesAndVariables() throws Exception {
+    Path xml = createMuleProjectWithTransform(false);
+    String payloadScript = """
+        %dw 2.0
+        output application/json
+        ---
+        { updatedPayload: true }
+        """;
+    String attributesScript = """
+        %dw 2.0
+        output application/java
+        ---
+        attributes ++ { source: "test" }
+        """;
+    String variableScript = """
+        %dw 2.0
+        output application/java
+        ---
+        "updated-variable"
+        """;
+
+    assertEquals(ToolInvocationStatus.success, new MuleTransformWriteTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Map Accounts",
+            "target", "payload", "dwlScript", payloadScript), null).get()[0].getStatus());
+    assertEquals(ToolInvocationStatus.success, new MuleTransformWriteTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Map Accounts",
+            "target", "attributes", "dwlScript", attributesScript), null).get()[0].getStatus());
+    assertEquals(ToolInvocationStatus.success, new MuleTransformWriteTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Map Accounts",
+            "target", "variable:customerId", "dwlScript", variableScript), null).get()[0].getStatus());
+
+    String updated = Files.readString(xml);
+    assertTrue(updated.contains("updatedPayload"));
+    assertTrue(updated.contains("attributes ++"));
+    assertTrue(updated.contains("updated-variable"));
+  }
+
+  @Test
+  void transformWriteErrorsDoNotModifyXml() throws Exception {
+    Path xml = createMuleProjectWithTransform(true);
+    String original = Files.readString(xml);
+    String script = """
+        %dw 2.0
+        output application/json
+        ---
+        payload
+        """;
+
+    LanguageModelToolResult[] ambiguous = new MuleTransformWriteTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "dwlScript", script), null).get();
+    assertEquals(ToolInvocationStatus.error, ambiguous[0].getStatus());
+    assertTrue(ambiguous[0].getContent().get(0).getValue().contains("Multiple ee:transform"));
+    assertEquals(original, Files.readString(xml));
+
+    LanguageModelToolResult[] missingTransform = new MuleTransformWriteTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Missing",
+            "target", "payload", "dwlScript", script), null).get();
+    assertEquals(ToolInvocationStatus.error, missingTransform[0].getStatus());
+    assertEquals(original, Files.readString(xml));
+
+    LanguageModelToolResult[] missingTarget = new MuleTransformWriteTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Map Accounts",
+            "target", "missingVar", "dwlScript", script), null).get();
+    assertEquals(ToolInvocationStatus.error, missingTarget[0].getStatus());
+    assertEquals(original, Files.readString(xml));
+
+    LanguageModelToolResult[] blankScript = new MuleTransformWriteTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Map Accounts",
+            "target", "payload", "dwlScript", "   "), null).get();
+    assertEquals(ToolInvocationStatus.error, blankScript[0].getStatus());
+    assertEquals(original, Files.readString(xml));
+  }
+
+  @Test
+  void mulesoftAgentAssetsExposeLocalTransformAndMcpTools() throws Exception {
+    Path repo = findRepoRoot();
+    String anypointTemplate = Files.readString(
+        repo.resolve("com.microsoft.copilot.eclipse.anypoint/templates/mulesoft-agent.agent.md"));
+    String bundledAgent = Files.readString(repo.resolve(
+        "com.microsoft.copilot.eclipse.ui/mulesoft-copilot/.github/agents/mulesoft-engineer.agent.md"));
+    String munitPrompt = Files.readString(repo.resolve(
+        "com.microsoft.copilot.eclipse.ui/mulesoft-copilot/.github/prompts/generate-munit-tests.prompt.md"));
+
+    assertTrue(anypointTemplate.contains("- mule_read_transform"));
+    assertTrue(anypointTemplate.contains("- mule_write_transform"));
+    assertTrue(anypointTemplate.contains("- mulesoft/generate_or_modify_munit_test"));
+    assertFalse(anypointTemplate.contains("generate_or_modify_munit\n"));
+    assertTrue(bundledAgent.contains("- mule_read_transform"));
+    assertTrue(bundledAgent.contains("- mule_write_transform"));
+    assertTrue(bundledAgent.contains("- mulesoft/generate_or_modify_munit_test"));
+    assertTrue(munitPrompt.contains("- mulesoft/generate_or_modify_munit_test"));
+  }
+
   private Path createMuleProject() throws Exception {
     Path project = tempDir.resolve("mule-app");
     Files.createDirectories(project.resolve("src/main/mule"));
@@ -208,5 +328,80 @@ class MuleAgentToolsTest {
         </mule>
         """);
     return project;
+  }
+
+  private Path createMuleProjectWithTransform(boolean includeSecondTransform) throws Exception {
+    Path project = tempDir.resolve(includeSecondTransform ? "mule-transforms-two" : "mule-transforms-one");
+    Files.createDirectories(project.resolve("src/main/mule"));
+    Files.createDirectories(project.resolve("src/main/resources/dw"));
+    Files.writeString(project.resolve("pom.xml"), """
+        <project xmlns="http://maven.apache.org/POM/4.0.0">
+          <modelVersion>4.0.0</modelVersion>
+          <groupId>example</groupId>
+          <artifactId>mule-transform-app</artifactId>
+          <version>1.0.0</version>
+        </project>
+        """);
+    Files.writeString(project.resolve("src/main/resources/dw/external.dwl"), """
+        %dw 2.0
+        output application/java
+        ---
+        "externalValue"
+        """);
+    String secondTransform = includeSecondTransform ? """
+          <ee:transform doc:name="Second Transform" doc:id="second-transform">
+            <ee:message>
+              <ee:set-payload><![CDATA[%dw 2.0
+        output application/json
+        ---
+        payload
+        ]]></ee:set-payload>
+            </ee:message>
+          </ee:transform>
+        """ : "";
+    Path xml = project.resolve("src/main/mule/api.xml");
+    Files.writeString(xml, """
+        <mule xmlns="http://www.mulesoft.org/schema/mule/core"
+              xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+              xmlns:doc="http://www.mulesoft.org/schema/mule/documentation">
+          <flow name="map-flow">
+            <ee:transform doc:name="Map Accounts" doc:id="map-accounts">
+              <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+        output application/json
+        ---
+        payload
+        ]]></ee:set-payload>
+                <ee:set-attributes><![CDATA[%dw 2.0
+        output application/java
+        ---
+        attributes
+        ]]></ee:set-attributes>
+              </ee:message>
+              <ee:variables>
+                <ee:set-variable variableName="customerId"><![CDATA[%dw 2.0
+        output application/java
+        ---
+        vars.customerId
+        ]]></ee:set-variable>
+                <ee:set-variable variableName="externalVar" resource="dw/external.dwl" />
+              </ee:variables>
+            </ee:transform>
+        ${SECOND_TRANSFORM}  </flow>
+        </mule>
+        """.replace("${SECOND_TRANSFORM}", secondTransform));
+    return xml;
+  }
+
+  private Path findRepoRoot() {
+    Path current = Path.of("").toAbsolutePath();
+    while (current != null) {
+      if (Files.isDirectory(current.resolve("com.microsoft.copilot.eclipse.anypoint/templates"))
+          && Files.isDirectory(current.resolve("com.microsoft.copilot.eclipse.ui/mulesoft-copilot/.github"))) {
+        return current;
+      }
+      current = current.getParent();
+    }
+    throw new IllegalStateException("Unable to locate repository root from test runtime.");
   }
 }

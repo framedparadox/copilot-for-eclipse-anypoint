@@ -2,6 +2,8 @@
 mode: agent
 tools:
   - api_schema_analyze
+  - mulesoft/generate_api_spec
+  - mulesoft/create_and_manage_assets
 ---
 # API Specification Review
 

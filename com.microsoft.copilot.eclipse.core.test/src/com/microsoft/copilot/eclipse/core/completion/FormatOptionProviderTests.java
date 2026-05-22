@@ -61,6 +61,14 @@ class FormatOptionProviderTests {
   }
 
   @Test
+  void testGetCopilotDefaultTabCharAndSizeForDataWeave() {
+    when(mockFile.getFileExtension()).thenReturn("dwl");
+
+    assertTrue(formatOptionProvider.useSpace(mockFile));
+    assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
+  }
+
+  @Test
   void testGetCopilotDefaultTabCharAndSizeForNoExtensionFile() {
     when(mockFile.getFileExtension()).thenReturn(null);
 

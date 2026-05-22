@@ -46,6 +46,8 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.MuleProjectErrorsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MuleProjectScanTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MuleProjectSummaryTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MuleSecurityReviewTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleTransformReadTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleTransformWriteTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MunitFullReviewTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MunitImprovementSuggestionsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MunitValidateFlowTestsTool;
@@ -112,6 +114,8 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     registerTool(new ApiSchemaAnalyzeTool());
     registerTool(new MuleCodeReviewTool());
     registerTool(new MuleSecurityReviewTool());
+    registerTool(new MuleTransformReadTool());
+    registerTool(new MuleTransformWriteTool());
     registerTool(new MunitValidateFlowTestsTool());
     registerTool(new MunitFullReviewTool());
     registerTool(new MunitImprovementSuggestionsTool());

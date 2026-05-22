@@ -3,11 +3,13 @@ mode: agent
 tools:
   - mule_project_scan
   - mule_code_review
+  - mule_read_transform
   - munit_validate_flow_tests
   - munit_full_review
   - munit_improvement_suggestions
   - get_mule_project_errors
   - run_mule_maven_tests
+  - mulesoft/generate_or_modify_munit_test
 ---
 # Generate MUnit Tests
 

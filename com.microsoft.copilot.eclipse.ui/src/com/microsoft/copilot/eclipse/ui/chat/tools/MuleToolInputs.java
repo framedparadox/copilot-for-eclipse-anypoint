@@ -27,6 +27,12 @@ final class MuleToolInputs {
   static final String REVIEW_TYPE = "reviewType";
   static final String SCOPE = "scope";
   static final String API_EXPOSURE = "apiExposure";
+  static final String XML_FILE_PATH = "xmlFilePath";
+  static final String TRANSFORM_NAME = "transformName";
+  static final String TRANSFORM_ID = "transformId";
+  static final String DWL_SCRIPT = "dwlScript";
+  static final String VARIABLE_NAME = "variableName";
+  static final String TARGET = "target";
 
   private MuleToolInputs() {
   }
@@ -124,5 +130,37 @@ final class MuleToolInputs {
       return list.stream().map(String.class::cast).filter(item -> !item.isBlank()).toList();
     }
     return List.of();
+  }
+
+  static InputSchema transformReadSchema() {
+    InputSchema inputSchema = new InputSchema();
+    inputSchema.setType("object");
+    inputSchema.setProperties(Map.of(
+        XML_FILE_PATH, new InputSchemaPropertyValue("string",
+            "Absolute path to a Mule XML file containing ee:transform elements"),
+        TRANSFORM_NAME, new InputSchemaPropertyValue("string",
+            "Optional doc:name of the Transform Message component to read"),
+        TRANSFORM_ID, new InputSchemaPropertyValue("string",
+            "Optional doc:id of the Transform Message component to read")));
+    inputSchema.setRequired(List.of(XML_FILE_PATH));
+    return inputSchema;
+  }
+
+  static InputSchema transformWriteSchema() {
+    InputSchema inputSchema = new InputSchema();
+    inputSchema.setType("object");
+    inputSchema.setProperties(Map.of(
+        XML_FILE_PATH, new InputSchemaPropertyValue("string",
+            "Absolute path to the Mule XML file containing the target ee:transform element"),
+        TRANSFORM_NAME, new InputSchemaPropertyValue("string",
+            "doc:name of the Transform Message component to update"),
+        TRANSFORM_ID, new InputSchemaPropertyValue("string",
+            "doc:id of the Transform Message component to update"),
+        TARGET, new InputSchemaPropertyValue("string",
+            "What to update: 'payload', 'attributes', 'variable:name', or a variable name"),
+        DWL_SCRIPT, new InputSchemaPropertyValue("string",
+            "Complete DataWeave 2.0 script starting with %dw 2.0 and output directive")));
+    inputSchema.setRequired(List.of(XML_FILE_PATH, DWL_SCRIPT));
+    return inputSchema;
   }
 }
