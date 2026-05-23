@@ -60,6 +60,24 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addNote(parent, Messages.preferences_page_watched_files_note_content);
     addSeparator(parent);
 
+    Composite consoleContextComposite = createSectionComposite(parent, gdf);
+    BooleanFieldEditor consoleContextField = new BooleanFieldEditor(Constants.CONSOLE_CONTEXT_ENABLED,
+        Messages.preferences_page_console_context, SWT.WRAP, consoleContextComposite);
+    applyFieldWidthHint(consoleContextField, consoleContextComposite);
+    addField(consoleContextField);
+
+    addNote(parent, Messages.preferences_page_console_context_note_content);
+    addSeparator(parent);
+
+    Composite transformContextComposite = createSectionComposite(parent, gdf);
+    BooleanFieldEditor transformContextField = new BooleanFieldEditor(Constants.TRANSFORM_CONTEXT_ENABLED,
+        Messages.preferences_page_transform_context, SWT.WRAP, transformContextComposite);
+    applyFieldWidthHint(transformContextField, transformContextComposite);
+    addField(transformContextField);
+
+    addNote(parent, Messages.preferences_page_transform_context_note_content);
+    addSeparator(parent);
+
     // Add sub-agent toggle
     Composite subAgentComposite = createSectionComposite(parent, gdf);
     boolean policyAllowsSubAgent = isPolicyAllowsSubAgent();

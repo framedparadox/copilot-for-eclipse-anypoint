@@ -13,7 +13,7 @@ GitHub Copilot for Eclipse brings AI-assisted coding to the Eclipse IDE with the
 
 Starting from version **0.18.0**, we have added internal support for the upcoming [usage-based billing experience](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/), including experience updates to the usage panel, usage notifications, and model picker. These changes will become visible once usage-based billing is rolled out.
 
-To ensure compatibility with the new billing experience, we strongly recommend upgrading the plugin to **0.18.0 or later** as soon as possible.
+To ensure compatibility with the new billing experience, we strongly recommend upgrading to the plugin to **0.18.0 or later** as soon as possible.
 
 Clients using older plugin versions will continue to function. However, the billing and usage experience may not be optimal and may not accurately reflect the latest usage-based billing experience.
 
@@ -87,7 +87,54 @@ For other available features in Eclipse, see the [Copilot feature matrix](https:
 
 ## Anypoint Studio Integration
 
-This plugin includes a dedicated integration for [MuleSoft Anypoint Studio](https://www.mulesoft.com/platform/studio), enabling AI-assisted Mule application development through Copilot's Agent Mode and MCP.
+This plugin includes a dedicated integration for [MuleSoft Anypoint Studio](https://www.mulesoft.com/platform/studio), enabling AI-assisted Mule 4 application development through Copilot's Agent Mode and MCP.
+
+### Slash Commands for MuleSoft Workflows
+
+Type `/` in the Copilot chat to see all available MuleSoft slash commands. Each command runs a pre-configured agent workflow tailored to a specific Mule development task:
+
+| Command | What it does |
+|---|---|
+| `/mule-code-review` | Reviews flow naming, error handlers, global configs, DataWeave, and APIkit route coverage |
+| `/mule-security-review` | Detects hardcoded secrets, SQL/XPath injection risks, missing TLS, authentication gaps, and policy coverage |
+| `/mule-performance-review` | Identifies DataWeave materialization, batch sizing issues, missing connector pooling, N+1 queries, and caching opportunities |
+| `/deployment-readiness` | Platform-specific deployment checklist for CloudHub, Runtime Fabric, or standalone; includes health endpoints and smoke tests |
+| `/api-spec-review` | Validates RAML/OpenAPI governance, APIkit router binding, security scheme implementation, and error response contracts |
+| `/generate-munit-tests` | Generates MUnit tests covering happy path, error path, connector failure, async flows, batch jobs, and scatter-gather patterns |
+| `/dataweave-best-practices` | Reviews Transform Message components for null safety, streaming, functional patterns, and module reuse |
+| `/connector-governance` | Audits connector versions against the Mule runtime, flags deprecated connectors, missing pooling, and retry strategy gaps |
+| `/logging-observability` | Reviews correlation ID propagation, structured log format, log levels, PII exposure, and Anypoint Monitoring setup |
+| `/error-handling-contract` | Audits On Error Propagate/Continue usage, typed matchers, correlation ID in error handlers, and HTTP status codes |
+| `/api-led-architecture-review` | Validates API-led layer assignment (Experience/Process/System), call direction rules, and connector placement |
+| `/batch-job-review` | Reviews batch job structure, block sizing, aggregator config, step error handling, and On Complete logging |
+| `/async-flow-review` | Reviews scheduler flows, VM/MQ listener patterns, async scope usage, and graceful shutdown configuration |
+
+### Smart Console Error Parsing
+
+When you use `@console` in the chat with Anypoint Studio console output that contains a Mule runtime exception, the plugin automatically prepends a structured summary before the raw output:
+
+```
+[Mule Error Summary]
+Error type: HTTP:CONNECTIVITY
+Flow: get-customer-main
+Root cause: Connection refused to https://api.example.com:443
+Component: HTTP_Request @ get-customer-main/processors/2
+```
+
+This lets the AI immediately understand the error context without parsing through Java stack trace noise.
+
+### Project Scanning
+
+The `mule_project_scan` tool (invoked automatically by most slash commands) returns rich Mule-specific analysis including:
+
+- Runtime version, flows, sub-flows, global configs, connectors, MUnit suite coverage
+- Per-flow error handler classification: `typed` (has type matchers), `catch-all` (no type), or `none`
+- Flows where a correlation ID is set at the source
+- Scheduler-triggered flows (require different MUnit strategy from HTTP flows)
+- `log4j2RootLevel` — flags DEBUG/TRACE in production
+- DB connection pool config presence and HTTP request timeout presence
+- `reconnect-forever` and `until-successful` without `maxRetries` detection
+- `hasBatchJob`, `hasApikit`, `hasSecureProperties` presence flags
 
 ### MuleSoft MCP Server
 
@@ -98,7 +145,7 @@ The plugin can automatically register the official [`mulesoft-mcp-server`](https
 - Running DataWeave scripts and generating sample data
 - Creating, running, and reviewing MUnit tests
 - Searching Anypoint Exchange assets
-- Running local Mule applications
+- Deploying to CloudHub, Runtime Fabric, and Flex Gateway
 
 ### Configuring MuleSoft MCP
 
@@ -107,14 +154,30 @@ The plugin can automatically register the official [`mulesoft-mcp-server`](https
 3. Enter your **Anypoint Platform Connected App** credentials:
    - **Client ID** – the connected app client ID.
    - **Client Secret** – stored securely in Eclipse secure storage.
-   - **Region** *(optional)* – one of `PROD_US`, `PROD_EU`, `PROD_CA`, or `PROD_JP`. Defaults to `PROD_US` when omitted.
-4. Click **Apply and Close**.
+   - **Region** *(optional)* – select from the dropdown: `PROD_US`, `PROD_EU`, `PROD_CA`, or `PROD_JP`. Defaults to `PROD_US` when left blank.
+4. Click **Apply and Close**, then approve the `mulesoft` server entry in **Preferences → Copilot → MCP Servers**.
 
 > **Tip:** If any field is left blank, the integration falls back to the `ANYPOINT_CLIENT_ID`, `ANYPOINT_CLIENT_SECRET`, and `ANYPOINT_REGION` environment variables set in the Studio process environment.
 
+### Workspace-Level Custom Instructions
+
+For best results, add a `copilot-instructions.md` file to your Mule project at `.github/copilot-instructions.md`. This file is read automatically on every chat turn and tells Copilot about your project's runtime version, API-led layer, connector conventions, error handling strategy, and MUnit expectations.
+
+A ready-to-use template is bundled at:
+```
+com.microsoft.copilot.eclipse.anypoint/templates/copilot-instructions-mule-template.md
+```
+Copy it to `.github/copilot-instructions.md` in your Mule project and fill in the placeholders.
+
 ### MuleSoft Agent Template
 
-A pre-built agent template (`mulesoft-agent.agent.md`) is bundled with the plugin. It configures a specialized Copilot agent scoped to MuleSoft development workflows, automatically wiring the relevant MuleSoft MCP tools alongside built-in Copilot capabilities such as project scanning, code review, and security review.
+A pre-built agent template (`mulesoft-agent.agent.md`) is bundled with the plugin. It configures a specialized Copilot agent scoped to Mule 4 development, automatically wiring the relevant MuleSoft MCP tools alongside built-in tools. The agent enforces:
+
+- **API-led architecture** — Experience → Process → System call direction rules
+- **Error handling contract** — typed On Error Propagate handlers, correlation ID logging, consistent error response shape
+- **DataWeave standards** — output type declaration, null-safe access, streaming for large payloads
+- **Logging discipline** — structured JSON format, correlation IDs at INFO, no PII in logs
+- **Connector governance** — version compatibility, pooling config, no `reconnect-forever` in production
 
 ### Prerequisites for MuleSoft MCP
 

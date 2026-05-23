@@ -26,12 +26,12 @@ import org.w3c.dom.Node;
 /**
  * Shared XML and DataWeave helpers for Transform Message tools.
  */
-final class MuleTransformSupport {
-  static final String EE_NS = "http://www.mulesoft.org/schema/mule/ee/core";
-  static final String DOC_NS = "http://www.mulesoft.org/schema/mule/documentation";
-  static final String TARGET_ATTRIBUTES = "attributes";
-  static final String TARGET_PAYLOAD = "payload";
-  static final String TARGET_VARIABLE_PREFIX = "variable:";
+public final class MuleTransformSupport {
+  public static final String EE_NS = "http://www.mulesoft.org/schema/mule/ee/core";
+  public static final String DOC_NS = "http://www.mulesoft.org/schema/mule/documentation";
+  public static final String TARGET_ATTRIBUTES = "attributes";
+  public static final String TARGET_PAYLOAD = "payload";
+  public static final String TARGET_VARIABLE_PREFIX = "variable:";
 
   private static final Path MULE_SOURCE_PATH = Path.of("src", "main", "mule");
   private static final Path RESOURCES_PATH = Path.of("src", "main", "resources");
@@ -39,7 +39,7 @@ final class MuleTransformSupport {
   private MuleTransformSupport() {
   }
 
-  static Document parseXml(Path file) throws Exception {
+  public static Document parseXml(Path file) throws Exception {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     factory.setNamespaceAware(true);
     factory.setXIncludeAware(false);
@@ -70,7 +70,7 @@ final class MuleTransformSupport {
     Files.writeString(xmlPath, writer.toString(), StandardCharsets.UTF_8);
   }
 
-  static List<Element> findTransforms(Document document, String transformName, String transformId) {
+  public static List<Element> findTransforms(Document document, String transformName, String transformId) {
     List<Element> matched = new ArrayList<>();
     var transforms = document.getElementsByTagNameNS(EE_NS, "transform");
     for (int i = 0; i < transforms.getLength(); i++) {
@@ -82,7 +82,7 @@ final class MuleTransformSupport {
     return matched;
   }
 
-  static List<Element> directChildren(Element parent, String localName) {
+  public static List<Element> directChildren(Element parent, String localName) {
     List<Element> children = new ArrayList<>();
     for (Node child = parent.getFirstChild(); child != null; child = child.getNextSibling()) {
       if (child instanceof Element element && EE_NS.equals(element.getNamespaceURI())
@@ -93,12 +93,12 @@ final class MuleTransformSupport {
     return children;
   }
 
-  static Element firstDirectChild(Element parent, String localName) {
+  public static Element firstDirectChild(Element parent, String localName) {
     List<Element> children = directChildren(parent, localName);
     return children.isEmpty() ? null : children.get(0);
   }
 
-  static ScriptContent readScriptContent(Element element, Path xmlPath) {
+  public static ScriptContent readScriptContent(Element element, Path xmlPath) {
     String resource = element.getAttribute("resource");
     if (resource.isBlank()) {
       return new ScriptContent(element.getTextContent().trim(), "", null, "");
@@ -137,7 +137,7 @@ final class MuleTransformSupport {
     return new WriteContentResult(true, true, xmlPath, "Updated inline DataWeave script");
   }
 
-  static String transformLabel(Element transform) {
+  public static String transformLabel(Element transform) {
     String docName = transform.getAttributeNS(DOC_NS, "name");
     if (docName.isBlank()) {
       docName = transform.getAttribute("doc:name");
@@ -163,10 +163,23 @@ final class MuleTransformSupport {
       docId = transform.getAttribute("doc:id");
     }
     if (!transformName.isBlank() && !transformId.isBlank()) {
-      return transformName.equals(docName) && transformId.equals(docId);
+      return matchesName(transformName, docName) && matchesId(transformId, docId);
     }
-    return (!transformName.isBlank() && transformName.equals(docName))
-        || (!transformId.isBlank() && transformId.equals(docId));
+    return (!transformName.isBlank() && matchesName(transformName, docName))
+        || (!transformId.isBlank() && matchesId(transformId, docId));
+  }
+
+  private static boolean matchesName(String filter, String docName) {
+    String f = filter.trim();
+    String n = docName.trim();
+    // Exact match first, then case-insensitive, then substring (handles partial names from AI)
+    return n.equals(f) || n.equalsIgnoreCase(f) || n.toLowerCase().contains(f.toLowerCase());
+  }
+
+  private static boolean matchesId(String filter, String docId) {
+    String f = filter.trim();
+    String d = docId.trim();
+    return d.equals(f) || d.equalsIgnoreCase(f);
   }
 
   private static ResourceResolution resolveResource(Path xmlPath, String resource) {
@@ -221,7 +234,7 @@ final class MuleTransformSupport {
     }
   }
 
-  record ScriptContent(String script, String resource, Path resourcePath, String resourceStatus) {
+  public record ScriptContent(String script, String resource, Path resourcePath, String resourceStatus) {
   }
 
   record WriteContentResult(boolean success, boolean xmlModified, Path modifiedPath, String message) {

@@ -9,6 +9,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
@@ -22,10 +23,12 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbenchPreferencePage {
   public static final String ID = "com.microsoft.copilot.eclipse.anypoint.preferences.MuleSoftMcpPreferencePage";
 
+  private static final String[] REGION_OPTIONS = { "", "PROD_US", "PROD_EU", "PROD_CA", "PROD_JP" };
+
   private Button enabledButton;
   private Text clientIdText;
   private Text clientSecretText;
-  private Text regionText;
+  private Combo regionCombo;
 
   @Override
   public void init(IWorkbench workbench) {
@@ -51,8 +54,15 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
     clientSecretText = createText(container, SWT.BORDER | SWT.PASSWORD);
 
     createLabel(container, "Region:");
-    regionText = createText(container, SWT.BORDER);
-    regionText.setMessage("Optional: PROD_US, PROD_EU, PROD_CA, or PROD_JP");
+    regionCombo = new Combo(container, SWT.DROP_DOWN | SWT.READ_ONLY);
+    regionCombo.setItems(REGION_OPTIONS);
+    regionCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+
+    Label statusLabel = new Label(container, SWT.WRAP);
+    statusLabel.setText("Status: MCP server registration is managed in Preferences → Copilot → MCP Servers. "
+        + "After saving, approve the mulesoft server entry in that page for it to become active.");
+    statusLabel.setLayoutData(spanTwoColumns());
+    useParentBackground(statusLabel);
 
     Label note = new Label(container, SWT.WRAP);
     note.setText("Credentials are stored in Eclipse secure storage. If a field is blank, the integration also checks "
@@ -66,10 +76,11 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
 
   @Override
   public boolean performOk() {
+    String selectedRegion = regionCombo.getSelectionIndex() > 0 ? regionCombo.getText() : "";
     MuleSoftMcpSettings.save(enabledButton.getSelection(), clientIdText.getText(), clientSecretText.getText(),
-        regionText.getText());
+        selectedRegion);
     if (enabledButton.getSelection() && MuleSoftMcpConfiguration.buildJson(clientIdText.getText(),
-        clientSecretText.getText(), regionText.getText()).isEmpty()) {
+        clientSecretText.getText(), selectedRegion).isEmpty()) {
       MessageDialog.openWarning(getShell(), "MuleSoft MCP Server",
           "MuleSoft MCP is enabled, but Client ID and Client Secret are empty. "
               + "Set them here or in the Studio process environment before approving the MCP server.");
@@ -81,7 +92,14 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
     enabledButton.setSelection(MuleSoftMcpSettings.isEnabled());
     clientIdText.setText(MuleSoftMcpSettings.getClientId());
     clientSecretText.setText(MuleSoftMcpSettings.getClientSecret());
-    regionText.setText(MuleSoftMcpSettings.getRegion());
+    String savedRegion = MuleSoftMcpSettings.getRegion();
+    regionCombo.select(0);
+    for (int i = 0; i < REGION_OPTIONS.length; i++) {
+      if (REGION_OPTIONS[i].equals(savedRegion)) {
+        regionCombo.select(i);
+        break;
+      }
+    }
   }
 
   private static void createLabel(Composite container, String text) {

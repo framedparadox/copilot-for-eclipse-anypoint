@@ -31,9 +31,14 @@ public class MuleProjectScanTool extends BaseTool {
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDisplayDescription("Scan Mule project structure and metadata");
     toolInfo.setDescription("""
-        Detect Mule project structure, runtime version, Mule XML files, API specs, MUnit suites,
-        connector dependencies, APIkit usage, deployment plugins, property placeholders, and immediate diagnostics.
-        This tool is read-only and should be used before Mule code review, security review, or XML edits.
+        Detect Mule project structure and metadata. Run this first on any Mule task before code review, security review,
+        or XML edits. Returns: Mule runtime version, all Mule XML file paths, flow and sub-flow names, API spec paths
+        (RAML, OpenAPI, WSDL), MUnit suite paths and test counts, connector dependencies with versions, APIkit usage,
+        deployment plugins (CloudHub, Runtime Fabric), property placeholder patterns, and immediate diagnostics
+        (missing mule-artifact.json, missing POM, no MUnit coverage, no API spec).
+        Use the runtime version and connector list to check version compatibility before suggesting upgrades.
+        Use the MUnit coverage data to identify flows with no test coverage.
+        This tool is read-only.
         """);
     toolInfo.setInputSchema(MuleToolInputs.projectPathSchema());
     return toolInfo;

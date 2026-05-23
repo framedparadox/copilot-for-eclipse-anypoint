@@ -309,8 +309,10 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     }
     clearFormat(0, text.length());
     String firstWord = text.substring(begin, end);
+    String activeModeNameOrId = userPreferenceService.getActiveModeNameOrId();
     if (e.keyCode == SWT.BS
-        && chatCompletionService.isBrokenCommand(firstWord, this.getTextWidget().getCaretOffset() - begin)) {
+        && chatCompletionService.isBrokenCommand(firstWord, this.getTextWidget().getCaretOffset() - begin,
+            activeModeNameOrId)) {
       try {
         getDocument().replace(begin, end - begin, StringUtils.EMPTY);
       } catch (BadLocationException ex) {
@@ -320,7 +322,7 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     }
     // we may need to highlight the command if user removed leading character before a command
     // user is typing
-    if (chatCompletionService.isCommand(firstWord)) {
+    if (chatCompletionService.isCommand(firstWord, activeModeNameOrId)) {
       this.getTextWidget().setStyleRange(new StyleRange(begin, end - begin, UiUtils.SLASH_COMMAND_FORGROUND_COLOR,
           UiUtils.SLASH_COMMAND_BACKGROUND_COLOR, SWT.BOLD));
       return;

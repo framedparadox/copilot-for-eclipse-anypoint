@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
+import java.util.List;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
@@ -16,8 +17,15 @@ public class CopilotAgentSettings {
   @SerializedName("maxToolCallingLoop")
   private int agentMaxRequests;
   private boolean enableSkills;
+  private List<McpAutoApproveSetting> toolConfirmAutoApprove = List.of();
 
   private String transcriptDirectory;
+
+  /**
+   * Setting shape expected by the Copilot language server for MCP tool auto-approval configuration.
+   */
+  public record McpAutoApproveSetting(String serverName, boolean isServerAllowed, List<String> allowedTools) {
+  }
 
   public int getAgentMaxRequests() {
     return agentMaxRequests;
@@ -50,9 +58,17 @@ public class CopilotAgentSettings {
     this.transcriptDirectory = transcriptDirectory;
   }
 
+  public List<McpAutoApproveSetting> getToolConfirmAutoApprove() {
+    return toolConfirmAutoApprove;
+  }
+
+  public void setToolConfirmAutoApprove(List<McpAutoApproveSetting> toolConfirmAutoApprove) {
+    this.toolConfirmAutoApprove = toolConfirmAutoApprove == null ? List.of() : List.copyOf(toolConfirmAutoApprove);
+  }
+
   @Override
   public int hashCode() {
-    return Objects.hash(agentMaxRequests, enableSkills, transcriptDirectory);
+    return Objects.hash(agentMaxRequests, enableSkills, toolConfirmAutoApprove, transcriptDirectory);
   }
 
   @Override
@@ -68,6 +84,7 @@ public class CopilotAgentSettings {
     }
     CopilotAgentSettings other = (CopilotAgentSettings) obj;
     return agentMaxRequests == other.agentMaxRequests && enableSkills == other.enableSkills
+        && Objects.equals(toolConfirmAutoApprove, other.toolConfirmAutoApprove)
         && Objects.equals(transcriptDirectory, other.transcriptDirectory);
   }
 
@@ -76,6 +93,7 @@ public class CopilotAgentSettings {
     ToStringBuilder builder = new ToStringBuilder(this);
     builder.append("agentMaxRequests", agentMaxRequests);
     builder.append("enableSkills", enableSkills);
+    builder.append("toolConfirmAutoApprove", toolConfirmAutoApprove);
     builder.append("transcriptDirectory", transcriptDirectory);
     return builder.toString();
   }
