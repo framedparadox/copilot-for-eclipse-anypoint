@@ -46,6 +46,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  */
 public class ChatInputTextViewer extends UndoableTextViewer implements PaintListener {
   private static final int MAX_INPUT_ROWS = 5;
+  private static final String CHAT_INPUT_CSS_CLASS = "chat-input-text";
 
   private Composite parent;
   private Consumer<String> sendMessageHandler;
@@ -58,6 +59,8 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
   private int lastCursorLineOffset = 0;
 
   private Color placeholderColor;
+  private Color darkInputBackground;
+  private Color darkInputForeground;
 
   private Runnable layoutRefreshCallback;
 
@@ -112,6 +115,15 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     applyDarkInputBackground();
   }
 
+  /**
+   * Reapplies the theme background for the chat input. Use this before redraw-only updates such as mode placeholder
+   * refreshes, where Eclipse may have reapplied native defaults.
+   */
+  public void refreshInputBackground() {
+    applyDarkInputBackground();
+    applyDarkInputBackgroundAsync();
+  }
+
   @Override
   public void paintControl(PaintEvent e) {
     String content = this.getContent();
@@ -131,6 +143,7 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     tvw.setLayout(new GridLayout(1, false));
     tvw.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
     tvw.setAlwaysShowScrollBars(false);
+    appendCssClass(tvw, CHAT_INPUT_CSS_CLASS);
     applyDarkInputBackground();
     SwtUtils.invokeOnDisplayThreadAsync(this::applyDarkInputBackground, tvw);
     tvw.addListener(SWT.Settings, e -> applyDarkInputBackground());
@@ -184,6 +197,9 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     // Unregister callback on dispose
     tvw.addDisposeListener(e -> {
       this.chatServiceManager.getChatFontService().unregisterCallback(fontChangeCallback);
+      disposeColor(this.placeholderColor);
+      disposeColor(this.darkInputBackground);
+      disposeColor(this.darkInputForeground);
     });
   }
 
@@ -194,7 +210,15 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     if (parent == null || parent.isDisposed()) {
       return;
     }
-    textWidget.setBackground(parent.getBackground());
+    Color background = getDarkInputBackground(textWidget);
+    Color foreground = getDarkInputForeground(textWidget);
+    parent.setBackground(background);
+    textWidget.setBackground(background);
+    textWidget.setForeground(foreground);
+  }
+
+  private void applyDarkInputBackground() {
+    applyDarkInputBackground(this.getTextWidget());
   }
 
   private void applyDarkInputBackgroundAsync() {
@@ -202,15 +226,43 @@ public class ChatInputTextViewer extends UndoableTextViewer implements PaintList
     SwtUtils.invokeOnDisplayThreadAsync(this::applyDarkInputBackground, textWidget);
   }
 
-  private void applyDarkInputBackground() {
-    applyDarkInputBackground(this.getTextWidget());
-  }
-
   private void applyDarkInputLineBackground(LineBackgroundEvent event) {
     if (parent == null || parent.isDisposed() || !UiUtils.isDarkTheme()) {
       return;
     }
-    event.lineBackground = parent.getBackground();
+    event.lineBackground = getDarkInputBackground((StyledText) event.widget);
+  }
+
+  private Color getDarkInputBackground(StyledText textWidget) {
+    if (darkInputBackground == null || darkInputBackground.isDisposed()) {
+      darkInputBackground = CssConstants.getChatBackgroundColor(textWidget.getDisplay());
+    }
+    return darkInputBackground;
+  }
+
+  private Color getDarkInputForeground(StyledText textWidget) {
+    if (darkInputForeground == null || darkInputForeground.isDisposed()) {
+      darkInputForeground = CssConstants.getChatForegroundColor(textWidget.getDisplay());
+    }
+    return darkInputForeground;
+  }
+
+  private void appendCssClass(StyledText textWidget, String className) {
+    Object currentClassNames = textWidget.getData(CssConstants.CSS_CLASS_NAME_KEY);
+    if (currentClassNames instanceof String names && !names.isBlank()) {
+      if (!(" " + names + " ").contains(" " + className + " ")) {
+        textWidget.setData(CssConstants.CSS_CLASS_NAME_KEY, names + " " + className);
+      }
+      return;
+    }
+
+    textWidget.setData(CssConstants.CSS_CLASS_NAME_KEY, className);
+  }
+
+  private void disposeColor(Color color) {
+    if (color != null && !color.isDisposed()) {
+      color.dispose();
+    }
   }
 
   private void clearFormat(int start, int end) {

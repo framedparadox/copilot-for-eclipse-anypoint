@@ -306,6 +306,7 @@ public class CustomModesPreferencePage extends PreferencePage implements IWorkbe
       GridData nameData = new GridData(SWT.FILL, SWT.CENTER, true, false);
       nameData.widthHint = 300;
       nameText.setLayoutData(nameData);
+      PreferencePageUtils.styleTextInput(nameText);
 
       // Only show folder selection if there are multiple folders
       if (folders.size() > 1) {

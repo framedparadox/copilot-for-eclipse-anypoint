@@ -903,6 +903,7 @@ public class ActionBar extends Composite implements NewConversationListener {
    */
   public void refreshPlaceholder() {
     if (inputTextViewer != null && !inputTextViewer.getTextWidget().isDisposed()) {
+      inputTextViewer.refreshInputBackground();
       inputTextViewer.getTextWidget().redraw();
     }
   }

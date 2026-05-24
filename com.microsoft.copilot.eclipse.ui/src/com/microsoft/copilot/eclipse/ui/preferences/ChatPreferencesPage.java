@@ -121,6 +121,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
         Messages.preferences_page_agent_max_requests, agentMaxRequestsComposite);
     agentMaxRequestsField.setValidRange(1, 500);
     agentMaxRequestsField.setErrorMessage(Messages.preferences_page_agent_max_requests_validation_error);
+    PreferencePageUtils.styleTextInput(agentMaxRequestsField.getTextControl(agentMaxRequestsComposite));
     addField(agentMaxRequestsField);
 
     addNote(parent, Messages.preferences_page_agent_max_requests_desc);

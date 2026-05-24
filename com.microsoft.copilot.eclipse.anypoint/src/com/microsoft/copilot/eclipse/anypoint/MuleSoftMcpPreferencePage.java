@@ -17,6 +17,8 @@ import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
+import com.microsoft.copilot.eclipse.ui.preferences.PreferencePageUtils;
+
 /**
  * Preferences for the MuleSoft MCP bridge used by Anypoint Studio.
  */
@@ -45,7 +47,6 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
     enabledButton = new Button(container, SWT.CHECK);
     enabledButton.setText("Enable MuleSoft MCP Server registration");
     enabledButton.setLayoutData(spanTwoColumns());
-    useParentBackground(enabledButton);
 
     createLabel(container, "Client ID:");
     clientIdText = createText(container, SWT.BORDER);
@@ -111,6 +112,7 @@ public class MuleSoftMcpPreferencePage extends PreferencePage implements IWorkbe
   private static Text createText(Composite container, int style) {
     Text text = new Text(container, style);
     text.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    PreferencePageUtils.styleTextInput(text);
     return text;
   }
 

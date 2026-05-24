@@ -17,6 +17,7 @@ public class CopilotAgentSettings {
   @SerializedName("maxToolCallingLoop")
   private int agentMaxRequests;
   private boolean enableSkills;
+  @SerializedName("toolConfirmAutoApprove")
   private List<McpAutoApproveSetting> toolConfirmAutoApprove = List.of();
 
   private String transcriptDirectory;
