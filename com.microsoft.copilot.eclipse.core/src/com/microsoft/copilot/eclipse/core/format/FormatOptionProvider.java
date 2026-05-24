@@ -26,6 +26,7 @@ public class FormatOptionProvider {
   private static final String CPP_LANGUAGE_ID = "cpp";
   private static final String[] CPP_LANGUAGE_EXTENSIONS = new String[] { "cpp", "c++", "cc", "cp", "cxx", "h", "h++",
       "hh", ".hpp", ".hxx", ".inc", ".inl", ".ipp", ".tcc", ".tpp" };
+  private static final String DATAWEAVE_LANGUAGE_ID = "dataweave";
   private static final boolean DEFAULT_USE_SPACE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_CHAR.equals("space");
   private static final int DEFAULT_TAB_SIZE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_SIZE;
 
@@ -46,6 +47,7 @@ public class FormatOptionProvider {
     for (String extension : CPP_LANGUAGE_EXTENSIONS) {
       languageExtensionToIdMap.put(extension, CPP_LANGUAGE_ID);
     }
+    languageExtensionToIdMap.put("dwl", DATAWEAVE_LANGUAGE_ID);
   }
 
   /**

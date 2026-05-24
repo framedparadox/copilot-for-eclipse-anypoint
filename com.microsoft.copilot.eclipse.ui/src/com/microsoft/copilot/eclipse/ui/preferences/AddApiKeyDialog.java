@@ -91,6 +91,7 @@ public class AddApiKeyDialog extends TrayDialog {
     apiKeyText.setEchoChar('*');
     apiKeyText.setText(apiKey != null ? apiKey : "");
     apiKeyText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    PreferencePageUtils.styleTextInput(apiKeyText);
     apiKeyText.addModifyListener(this::onFieldChanged);
 
     eyeOpenImg = UiUtils

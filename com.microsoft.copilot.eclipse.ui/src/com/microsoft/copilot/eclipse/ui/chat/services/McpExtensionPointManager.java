@@ -137,8 +137,7 @@ public class McpExtensionPointManager {
       if (servers != null && !servers.isEmpty()) {
         // Merge all servers into the result map
         servers.forEach((serverName, serverValue) -> {
-          String displayServerName = regInfo.getPluginDisplayName() + ": " + serverName;
-          allServers.merge(displayServerName, serverValue,
+          allServers.merge(serverName, serverValue,
               (existingValue, newValue) -> newValue != null ? newValue : existingValue);
         });
       }

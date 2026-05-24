@@ -5,6 +5,7 @@ package com.microsoft.copilot.eclipse.ui.preferences;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -238,6 +239,9 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    * Custom agent modes get their tool configuration from the LSP/file, not from preferences.
    */
   public void initializeMcpToolsStatus() {
+    // Migrate old preferences if needed (strip plugin display name prefixes from server names)
+    migrateMcpToolsStatusIfNeeded();
+
     // Load per-mode tool status
     String savedModeToolsStatus = preferenceStore.getString(Constants.MCP_TOOLS_MODE_STATUS);
 
@@ -338,7 +342,9 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
 
       // This is an MCP server
       McpServerToolsStatusCollection serverToolsStatus = new McpServerToolsStatusCollection();
-      serverToolsStatus.setName(serverName);
+      // Extract the simple server name (strip plugin prefix if present)
+      String simpleName = extractSimpleServerName(serverName);
+      serverToolsStatus.setName(simpleName);
 
       List<McpToolsStatusCollection> toolStatusList = new ArrayList<>();
       serverToolsStatus.setTools(toolStatusList);
@@ -529,6 +535,87 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
    */
   public void setAutoShowCompletion(boolean autoShowCompletion) {
     preferenceStore.setValue(Constants.AUTO_SHOW_COMPLETION, autoShowCompletion);
+  }
+
+  /**
+   * Migrates old MCP tools status preferences to remove plugin display name prefixes from server names.
+   * This handles backward compatibility when server registration changed from prefixed names to simple names.
+   */
+  private void migrateMcpToolsStatusIfNeeded() {
+    try {
+      // Migrate MCP_TOOLS_MODE_STATUS (per-mode tool status)
+      String savedModeToolsStatus = preferenceStore.getString(Constants.MCP_TOOLS_MODE_STATUS);
+      if (StringUtils.isNotBlank(savedModeToolsStatus) && savedModeToolsStatus.contains(": ")) {
+        Map<String, Map<String, Map<String, Boolean>>> modeToolStatus = GsonUtils.getDefault()
+            .fromJson(savedModeToolsStatus, new TypeToken<Map<String, Map<String, Map<String, Boolean>>>>() {
+            }.getType());
+
+        boolean modified = false;
+        for (Map<String, Map<String, Boolean>> modeTools : modeToolStatus.values()) {
+          // Create a new map with migrated server names
+          Map<String, Map<String, Boolean>> migratedTools = new HashMap<>();
+          for (Map.Entry<String, Map<String, Boolean>> entry : modeTools.entrySet()) {
+            String simpleName = extractSimpleServerName(entry.getKey());
+            if (!simpleName.equals(entry.getKey())) {
+              modified = true;
+            }
+            migratedTools.put(simpleName, entry.getValue());
+          }
+          modeTools.clear();
+          modeTools.putAll(migratedTools);
+        }
+
+        if (modified) {
+          String migratedJson = GsonUtils.getDefault().toJson(modeToolStatus);
+          preferenceStore.setValue(Constants.MCP_TOOLS_MODE_STATUS, migratedJson);
+        }
+      }
+
+      // Migrate MCP_TOOLS_STATUS (legacy agent mode tool status)
+      String savedMcpToolsStatus = preferenceStore.getString(Constants.MCP_TOOLS_STATUS);
+      if (StringUtils.isNotBlank(savedMcpToolsStatus) && savedMcpToolsStatus.contains(": ")) {
+        Map<String, Map<String, Boolean>> toolStatusMap = GsonUtils.getDefault()
+            .fromJson(savedMcpToolsStatus, new TypeToken<Map<String, Map<String, Boolean>>>() {
+            }.getType());
+
+        // Create a new map with migrated server names
+        Map<String, Map<String, Boolean>> migratedTools = new HashMap<>();
+        boolean modified = false;
+        for (Map.Entry<String, Map<String, Boolean>> entry : toolStatusMap.entrySet()) {
+          String simpleName = extractSimpleServerName(entry.getKey());
+          if (!simpleName.equals(entry.getKey())) {
+            modified = true;
+          }
+          migratedTools.put(simpleName, entry.getValue());
+        }
+
+        if (modified) {
+          String migratedJson = GsonUtils.getDefault().toJson(migratedTools);
+          preferenceStore.setValue(Constants.MCP_TOOLS_STATUS, migratedJson);
+        }
+      }
+    } catch (Exception e) {
+      CopilotCore.LOGGER.error("Failed to migrate MCP tools status preferences", e);
+    }
+  }
+
+  /**
+   * Extracts the simple server name from a potentially prefixed display name.
+   * If the server name contains ": " (plugin display name prefix), returns the part after it.
+   * Otherwise, returns the server name as-is.
+   *
+   * @param displayName the display name that may include a plugin prefix
+   * @return the simple server name without the plugin prefix
+   */
+  private String extractSimpleServerName(String displayName) {
+    if (StringUtils.isBlank(displayName)) {
+      return displayName;
+    }
+    int colonIndex = displayName.indexOf(": ");
+    if (colonIndex > 0) {
+      return displayName.substring(colonIndex + 2);
+    }
+    return displayName;
   }
 
   /**

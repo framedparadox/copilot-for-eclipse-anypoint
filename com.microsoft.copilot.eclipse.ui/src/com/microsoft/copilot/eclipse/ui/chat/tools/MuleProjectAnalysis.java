@@ -29,11 +29,20 @@ final class MuleProjectAnalysis {
   final Set<String> deploymentPlugins = new LinkedHashSet<>();
   final Map<String, Integer> processorCounts = new LinkedHashMap<>();
   final List<MuleDiagnostic> diagnostics = new ArrayList<>();
+  final Map<String, String> flowErrorHandlerTypes = new LinkedHashMap<>();
+  final Set<String> flowsWithCorrelationId = new LinkedHashSet<>();
+  final Set<String> schedulerFlows = new LinkedHashSet<>();
+  final List<String> untilSuccessfulWithoutMaxRetries = new ArrayList<>();
   String muleRuntimeVersion = "";
+  String log4j2RootLevel = "";
   boolean hasPom;
   boolean hasMuleArtifact;
   boolean hasApikit;
   boolean hasSecureProperties;
+  boolean hasDbPoolConfig;
+  boolean hasHttpRequestTimeout;
+  boolean hasReconnectForever;
+  boolean hasBatchJob;
 
   MuleProjectAnalysis(Path projectPath) {
     this.projectPath = projectPath;

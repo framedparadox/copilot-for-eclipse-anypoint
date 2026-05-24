@@ -35,6 +35,7 @@ public class RunMuleMavenTestsTool extends BaseTool {
   private static final String PROJECT_PATH = "projectPath";
   private static final String GOALS = "goals";
   private static final String MAX_OUTPUT_CHARS = "maxOutputChars";
+  private static final String MAVEN_PROFILE = "mavenProfile";
   private static final int DEFAULT_MAX_OUTPUT_CHARS = 12000;
   private static final Duration TIMEOUT = Duration.ofMinutes(10);
 
@@ -51,18 +52,24 @@ public class RunMuleMavenTestsTool extends BaseTool {
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDisplayDescription("Run Maven or MUnit validation for a Mule project");
     toolInfo.setDescription("""
-        Run Maven validation for a MuleSoft project and return the command output.
+        Run Maven validation for a MuleSoft project and return command output.
         Use this after generating or modifying Mule XML, DataWeave, RAML/OpenAPI, or MUnit tests.
-        The default goal is test, which runs the project's Maven test lifecycle.
+        Default goal is "test" which runs the full Maven test lifecycle including MUnit suites.
+        MUnit-specific flags: pass "-Dmunit.test=<suite-name>.xml" in goals to run a single suite,
+        or "-DskipMunitTests=false" to force MUnit execution when tests are skipped by profile.
+        Multi-module projects: add "-pl <module-name>" to the goals array to target a specific module.
+        Use mavenProfile to activate an environment-specific Maven profile (e.g., "dev", "test").
         """);
     InputSchema inputSchema = new InputSchema();
     inputSchema.setType("object");
     Map<String, InputSchemaPropertyValue> properties = new LinkedHashMap<>();
     properties.put(PROJECT_PATH, new InputSchemaPropertyValue("string", "Absolute path to the Mule project folder"));
     InputSchemaPropertyValue goals = new InputSchemaPropertyValue("array",
-        "Maven goals to run, for example [\"test\"] or [\"-DskipMunitTests=false\", \"test\"]");
-    goals.setItems(new InputSchemaPropertyValue("string", "A Maven goal or argument"));
+        "Maven goals and arguments, e.g. [\"test\"] or [\"-Dmunit.test=mySuite.xml\", \"test\"]");
+    goals.setItems(new InputSchemaPropertyValue("string", "A Maven goal or argument flag"));
     properties.put(GOALS, goals);
+    properties.put(MAVEN_PROFILE,
+        new InputSchemaPropertyValue("string", "Optional Maven profile to activate with -P, e.g. dev or test"));
     properties.put(MAX_OUTPUT_CHARS, new InputSchemaPropertyValue("number", "Maximum output characters to return"));
     inputSchema.setProperties(properties);
     inputSchema.setRequired(List.of(PROJECT_PATH));
@@ -93,7 +100,7 @@ public class RunMuleMavenTestsTool extends BaseTool {
           return new LanguageModelToolResult[] { result };
         }
 
-        List<String> command = buildCommand(projectPath, input.get(GOALS));
+        List<String> command = buildCommand(projectPath, input.get(GOALS), input.get(MAVEN_PROFILE));
         ProcessResult processResult = run(projectPath, command, getMaxOutputChars(input.get(MAX_OUTPUT_CHARS)));
         result.setStatus(processResult.exitCode == 0 ? ToolInvocationStatus.success : ToolInvocationStatus.error);
         result.addContent(processResult.render(command));
@@ -127,11 +134,15 @@ public class RunMuleMavenTestsTool extends BaseTool {
     return new ProcessResult(process.exitValue(), output.toString());
   }
 
-  private List<String> buildCommand(Path projectPath, Object goalsInput) {
+  private List<String> buildCommand(Path projectPath, Object goalsInput, Object profileInput) {
     List<String> command = new ArrayList<>();
     command.add(findMavenExecutable(projectPath));
     List<String> goals = parseGoals(goalsInput);
     command.addAll(goals.isEmpty() ? List.of("test") : goals);
+    if (profileInput instanceof String profile && !profile.isBlank()) {
+      command.add("-P");
+      command.add(profile.trim());
+    }
     return command;
   }
 

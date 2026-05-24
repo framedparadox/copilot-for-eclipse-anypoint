@@ -50,6 +50,24 @@ public class PreferencesUtils {
   }
 
   /**
+   * Returns whether console context is enabled for chat.
+   *
+   * @return {@code true} if the user enabled console context, {@code false} otherwise
+   */
+  public static boolean isConsoleContextEnabled() {
+    CopilotUi plugin = CopilotUi.getPlugin();
+    return plugin != null && plugin.getPreferenceStore().getBoolean(Constants.CONSOLE_CONTEXT_ENABLED);
+  }
+
+  /**
+   * @return {@code true} if the user enabled transform context (@transform command), {@code false} otherwise
+   */
+  public static boolean isTransformContextEnabled() {
+    CopilotUi plugin = CopilotUi.getPlugin();
+    return plugin != null && plugin.getPreferenceStore().getBoolean(Constants.TRANSFORM_CONTEXT_ENABLED);
+  }
+
+  /**
    * Returns the current value for the scope used for loading custom instructions in the chat.
    *
    * @param preferenceStore the preference store to read from

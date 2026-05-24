@@ -80,6 +80,16 @@
 	color: #A4A4A4;
 }
 
+StyledText.chat-input-text {
+	color: #DEE1E5;
+	background-color: #1E1F22;
+}
+
+Text.copilot-preference-text-input {
+	color: #FFFFFF;
+	background-color: #1E1F22;
+}
+
 #chat-container > HandoffContainer,
 #chat-container > HandoffContainer * {
 	background-color: #1E1F22;

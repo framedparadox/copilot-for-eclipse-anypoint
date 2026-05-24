@@ -218,6 +218,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     // disable the label of the input field, so that the input box can be positioned at the beginning
     // of the container.
     workspaceInstrField.getLabelControl(workspaceInstrFieldContainer).dispose();
+    PreferencePageUtils.styleTextInput(workspaceInstrField.getTextControl(workspaceInstrFieldContainer));
     addField(workspaceInstrField);
 
     // Add note using WrappableNoteLabel
@@ -333,6 +334,7 @@ public class CustomInstructionPreferencePage extends FieldEditorPreferencePage i
     // disable the label of the input field, so that the input box can be positioned at the beginning
     // of the container.
     gitCommitInstrField.getLabelControl(gitCommitInstrFieldContainer).dispose();
+    PreferencePageUtils.styleTextInput(gitCommitInstrField.getTextControl(gitCommitInstrFieldContainer));
     addField(gitCommitInstrField);
 
     // Add note using WrappableNoteLabel

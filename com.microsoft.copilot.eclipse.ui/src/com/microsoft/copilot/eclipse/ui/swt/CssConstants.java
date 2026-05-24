@@ -44,6 +44,28 @@ public class CssConstants {
   }
 
   /**
+   * Get the chat surface background color based on the current theme.
+   */
+  public static Color getChatBackgroundColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 47, 47, 47);
+      // return new Color(display, 222, 225, 229);
+      // return new Color(display, 30, 31, 34);
+    }
+    return new Color(display, 255, 255, 255);
+  }
+
+  /**
+   * Get the chat surface text color based on the current theme.
+   */
+  public static Color getChatForegroundColor(Display display) {
+    if (UiUtils.isDarkTheme()) {
+      return new Color(display, 255, 255, 255);
+    }
+    return new Color(display, 0, 0, 0);
+  }
+
+  /**
    * Get the border color for UI elements based on the current theme.
    */
   public static Color getBorderColor(Display display) {

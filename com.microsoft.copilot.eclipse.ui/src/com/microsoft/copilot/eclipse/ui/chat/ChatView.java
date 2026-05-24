@@ -82,6 +82,11 @@ import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.ConsoleContextPromptProcessor;
+import com.microsoft.copilot.eclipse.ui.chat.services.ConsoleContextService;
+import com.microsoft.copilot.eclipse.ui.chat.services.ConsoleContextPromptProcessor.ProcessedMessage;
+import com.microsoft.copilot.eclipse.ui.chat.services.TransformEditorContextPromptProcessor;
+import com.microsoft.copilot.eclipse.ui.chat.services.TransformEditorContextService;
 import com.microsoft.copilot.eclipse.ui.chat.services.DebugEventAutoResponseHandler;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
@@ -93,6 +98,7 @@ import com.microsoft.copilot.eclipse.ui.chat.viewers.LoadingViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.NoSubscriptionViewer;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.ResourceUtils;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -130,6 +136,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   // Auto breakpoint response handler
   private DebugEventAutoResponseHandler debugEventHandler;
+  private ConsoleContextService consoleContextService = new ConsoleContextService();
+  private TransformEditorContextService transformEditorContextService = new TransformEditorContextService();
 
   // Event handlers for cleanup
   private EventHandler chatOnSendHandler;
@@ -435,6 +443,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (partRef.getPart(false) == ChatView.this) {
           activateChatViewContext();
         }
+        updateTransformPropertiesHint(partRef, true);
       }
 
       @Override
@@ -442,6 +451,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (partRef.getPart(false) == ChatView.this) {
           deactivateChatViewContext();
         }
+        updateTransformPropertiesHint(partRef, false);
       }
 
       @Override
@@ -451,7 +461,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       @Override
       public void partClosed(IWorkbenchPartReference partRef) {
-        // No action needed
+        updateTransformPropertiesHint(partRef, false);
       }
 
       @Override
@@ -503,6 +513,38 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
       chatViewContextActivation = null;
     }
+  }
+
+  private void updateTransformPropertiesHint(IWorkbenchPartReference partRef, boolean activated) {
+    String partId = partRef.getId();
+    if (!isTransformPropertiesView(partId)) {
+      return;
+    }
+    if (!activated) {
+      transformEditorContextService.clearActiveTransformHint();
+      return;
+    }
+    String title = partRef.getPartName();
+    String[] hint = parseTransformHintFromTitle(title);
+    transformEditorContextService.setActiveTransformHint(hint[0], hint[1]);
+  }
+
+  private boolean isTransformPropertiesView(String partId) {
+    return partId != null && (partId.equals(TransformEditorContextService.MULE_TRANSFORM_VIEW_ID)
+        || partId.startsWith("org.mule.tooling.ui.views.transform")
+        || partId.startsWith("com.mulesoft.studio.properties"));
+  }
+
+  private String[] parseTransformHintFromTitle(String title) {
+    if (title == null || title.isBlank()) {
+      return new String[] {"", ""};
+    }
+    int colonIdx = title.indexOf(':');
+    if (colonIdx >= 0 && colonIdx + 1 < title.length()) {
+      return new String[] {title.substring(colonIdx + 1).trim(), ""};
+    }
+    String cleaned = title.replace("Transform Message", "").trim();
+    return new String[] {cleaned, ""};
   }
 
   /**
@@ -973,15 +1015,26 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
       boolean createNewTurn) {
-    String processedMessage = replaceWorkspaceCommand(message);
-
-    // Persist the user input to history
-    chatServiceManager.getUserPreferenceService().addInputToHistory(processedMessage);
-
     final ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
 
     // Get mode information
     String activeModeId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
+    String consoleContextModeId = StringUtils.defaultIfBlank(activeModeId,
+        activeChatMode != null ? activeChatMode.toString() : null);
+    ProcessedMessage consoleProcessedMessage = processConsoleContextCommand(message, consoleContextModeId);
+    TransformEditorContextPromptProcessor.ProcessedMessage transformProcessedMessage =
+        processTransformContextCommand(consoleProcessedMessage.serverMessage(), consoleContextModeId);
+    if (!transformProcessedMessage.transformContextRequested()) {
+      transformProcessedMessage = autoInjectTransformContext(
+          transformProcessedMessage.serverMessage(), consoleContextModeId);
+    }
+    String processedMessage = replaceWorkspaceCommand(transformProcessedMessage.serverMessage());
+    String userMessageToPersist =
+        (consoleProcessedMessage.consoleContextRequested() || transformProcessedMessage.transformContextRequested())
+            ? message : processedMessage;
+
+    // Persist the user input to history
+    chatServiceManager.getUserPreferenceService().addInputToHistory(userMessageToPersist);
 
     // Determine chat mode name and custom mode ID for LSP
     String chatModeName;
@@ -1030,7 +1083,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     if (conversationState == ConversationState.CONTINUED_CONVERSATION) {
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
-        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage,
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, userMessageToPersist,
             activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
@@ -1080,7 +1133,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
-            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+            userMessageToPersist, activeModel, chatModeName, customChatModeId, currentFile, references);
 
         // Set conversationId and last completed turnId for CLS server-side session restoration.
         restoredConversationId = this.conversationId;
@@ -1103,7 +1156,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
-            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+            userMessageToPersist, activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
       List<WorkspaceFolder> workspaceFolders = deriveWorkspaceFolders(currentFile, references);
@@ -1208,6 +1261,26 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }
 
     return message;
+  }
+
+  private ProcessedMessage processConsoleContextCommand(String message, String activeModeId) {
+    return ConsoleContextPromptProcessor.process(message, PreferencesUtils.isConsoleContextEnabled(),
+        ChatCompletionService.isConsoleContextSupportedMode(activeModeId), consoleContextService::captureActiveConsole);
+  }
+
+  private TransformEditorContextPromptProcessor.ProcessedMessage processTransformContextCommand(String message,
+      String activeModeId) {
+    return TransformEditorContextPromptProcessor.process(message, PreferencesUtils.isTransformContextEnabled(),
+        ChatCompletionService.isTransformContextSupportedMode(activeModeId),
+        transformEditorContextService::captureActiveTransformContext);
+  }
+
+  private TransformEditorContextPromptProcessor.ProcessedMessage autoInjectTransformContext(String message,
+      String activeModeId) {
+    return TransformEditorContextPromptProcessor.processAutoInject(message,
+        PreferencesUtils.isTransformContextEnabled(),
+        ChatCompletionService.isTransformContextSupportedMode(activeModeId),
+        transformEditorContextService::captureAutoTransformContext);
   }
 
   private void displayErrorAndResetSendButton(String workDoneToken, String message) {

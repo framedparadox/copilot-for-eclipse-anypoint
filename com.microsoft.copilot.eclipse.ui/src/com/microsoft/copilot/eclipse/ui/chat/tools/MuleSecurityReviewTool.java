@@ -32,8 +32,15 @@ public class MuleSecurityReviewTool extends BaseTool {
     toolInfo.setDisplayDescription("Run MuleSoft security review");
     toolInfo.setDescription("""
         Perform a security review for MuleSoft projects by scanning Mule XML, property files, POM metadata,
-        and API specs for hardcoded secrets, insecure HTTP, missing secure properties, missing API contracts,
-        unsafe logging signals, and policy review prompts. This tool is read-only.
+        and API specs. Detects: hardcoded credentials (password, secret, token, apikey, clientsecret patterns in XML
+        or property files), plain ${property} references for sensitive values that should use ${secure::property},
+        missing Secure Configuration Properties module dependency, insecure HTTP Listener endpoints (HTTP not HTTPS),
+        outbound HTTP Request configs with insecure="true" or missing TLS context, Database connector queries
+        with string-concatenated SQL (SQL injection risk), unsafe payload logging in Logger components,
+        flows with no authentication mechanism on HTTP-facing endpoints, and missing API policy coverage.
+        Common high-severity findings: base64-encoded credentials in XML attributes, passwords in config-default.yaml,
+        HTTP Listener on port 8081 without TLS in a production-bound project.
+        This tool is read-only and classifies findings as critical, high, medium, or low.
         """);
     toolInfo.setInputSchema(MuleToolInputs.securityReviewSchema());
     return toolInfo;
