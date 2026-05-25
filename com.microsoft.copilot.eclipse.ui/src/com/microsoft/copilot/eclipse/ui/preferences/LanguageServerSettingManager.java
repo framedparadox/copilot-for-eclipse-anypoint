@@ -632,7 +632,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
         boolean modified = false;
         for (Map<String, Map<String, Boolean>> modeTools : modeToolStatus.values()) {
           // Create a new map with migrated server names
-          Map<String, Map<String, Boolean>> migratedTools = new HashMap<>();
+          Map<String, Map<String, Boolean>> migratedTools = new LinkedHashMap<>();
           for (Map.Entry<String, Map<String, Boolean>> entry : modeTools.entrySet()) {
             String simpleName = extractSimpleServerName(entry.getKey());
             if (!simpleName.equals(entry.getKey())) {
@@ -658,7 +658,7 @@ public class LanguageServerSettingManager implements IProxyChangeListener, IProp
             }.getType());
 
         // Create a new map with migrated server names
-        Map<String, Map<String, Boolean>> migratedTools = new HashMap<>();
+        Map<String, Map<String, Boolean>> migratedTools = new LinkedHashMap<>();
         boolean modified = false;
         for (Map.Entry<String, Map<String, Boolean>> entry : toolStatusMap.entrySet()) {
           String simpleName = extractSimpleServerName(entry.getKey());
