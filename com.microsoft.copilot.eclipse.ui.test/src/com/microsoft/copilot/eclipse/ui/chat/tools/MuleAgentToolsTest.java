@@ -125,6 +125,122 @@ class MuleAgentToolsTest {
   }
 
   @Test
+  void transformReadMatchesByNameCaseInsensitiveAndSubstring() throws Exception {
+    Path xml = createMuleProjectWithTransform(false);
+
+    // Case-insensitive match
+    LanguageModelToolResult[] caseResult = new MuleTransformReadTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "map accounts"), null).get();
+    assertEquals(ToolInvocationStatus.success, caseResult[0].getStatus());
+    assertTrue(caseResult[0].getContent().get(0).getValue().contains("target=payload"));
+
+    // Substring match (partial name)
+    LanguageModelToolResult[] subResult = new MuleTransformReadTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Accounts"), null).get();
+    assertEquals(ToolInvocationStatus.success, subResult[0].getStatus());
+    assertTrue(subResult[0].getContent().get(0).getValue().contains("target=payload"));
+
+    // Non-matching name still fails
+    LanguageModelToolResult[] noMatch = new MuleTransformReadTool()
+        .invoke(Map.of("xmlFilePath", xml.toString(), "transformName", "Non Existent Transform"), null).get();
+    assertEquals(ToolInvocationStatus.error, noMatch[0].getStatus());
+    assertTrue(noMatch[0].getContent().get(0).getValue().contains("No ee:transform element matched"));
+  }
+
+  @Test
+  void dwlReadToolReturnsFileContentAndLineCount() throws Exception {
+    Path dwl = tempDir.resolve("normalize.dwl");
+    Files.writeString(dwl, "%dw 2.0\noutput application/json\n---\npayload map (item -> item)");
+
+    LanguageModelToolResult[] results = new MuleDwlReadTool()
+        .invoke(Map.of("dwlFilePath", dwl.toString()), null).get();
+
+    assertEquals(ToolInvocationStatus.success, results[0].getStatus());
+    String output = results[0].getContent().get(0).getValue();
+    assertTrue(output.contains("lines=4"));
+    assertTrue(output.contains("script:"));
+    assertTrue(output.contains("%dw 2.0"));
+    assertTrue(output.contains("payload map"));
+  }
+
+  @Test
+  void dwlReadToolRejectsNonDwlFile() throws Exception {
+    Path xml = tempDir.resolve("test.xml");
+    Files.writeString(xml, "<root/>");
+
+    LanguageModelToolResult[] results = new MuleDwlReadTool()
+        .invoke(Map.of("dwlFilePath", xml.toString()), null).get();
+
+    assertEquals(ToolInvocationStatus.error, results[0].getStatus());
+    assertTrue(results[0].getContent().get(0).getValue().contains(".dwl"));
+  }
+
+  @Test
+  void dwlWriteToolWritesScriptToFile() throws Exception {
+    Path dwl = tempDir.resolve("transform.dwl");
+    Files.writeString(dwl, "%dw 2.0\noutput application/json\n---\npayload");
+    String newScript = "%dw 2.0\noutput application/json\n---\npayload map (item -> { id: item.id })";
+
+    LanguageModelToolResult[] results = new MuleDwlWriteTool()
+        .invoke(Map.of("dwlFilePath", dwl.toString(), "dwlScript", newScript), null).get();
+
+    assertEquals(ToolInvocationStatus.success, results[0].getStatus());
+    assertEquals(newScript, Files.readString(dwl));
+  }
+
+  @Test
+  void dwlOptimizeToolDetectsMissingOutputDirective() throws Exception {
+    Path dwl = tempDir.resolve("bad.dwl");
+    Files.writeString(dwl, "%dw 2.0\n---\npayload");
+
+    LanguageModelToolResult[] results = new MuleDwlOptimizeTool()
+        .invoke(Map.of("dwlFilePath", dwl.toString(), "includeComments", false, "applyFixes", false), null).get();
+
+    assertEquals(ToolInvocationStatus.success, results[0].getStatus());
+    String output = results[0].getContent().get(0).getValue();
+    assertTrue(output.contains("missing-output-directive"));
+    assertTrue(output.contains("output application/json"));
+  }
+
+  @Test
+  void dwlOptimizeToolDetectsNestedMapFilter() throws Exception {
+    Path dwl = tempDir.resolve("nested.dwl");
+    Files.writeString(dwl, "%dw 2.0\noutput application/json\n---\npayload.a map (x -> payload.b filter (y -> y.id == x.id))");
+
+    LanguageModelToolResult[] results = new MuleDwlOptimizeTool()
+        .invoke(Map.of("dwlFilePath", dwl.toString(), "includeComments", false, "applyFixes", false), null).get();
+
+    assertEquals(ToolInvocationStatus.success, results[0].getStatus());
+    String output = results[0].getContent().get(0).getValue();
+    assertTrue(output.contains("nested-map-filter"));
+    assertTrue(output.contains("groupBy"));
+  }
+
+  @Test
+  void dwlOptimizeToolAppliesFixesWhenRequested() throws Exception {
+    Path dwl = tempDir.resolve("nocomment.dwl");
+    String original = "%dw 2.0\noutput application/json\n---\nfun greet(name) = \"Hello \" ++ name\ngreet(payload.name)";
+    Files.writeString(dwl, original);
+
+    LanguageModelToolResult[] results = new MuleDwlOptimizeTool()
+        .invoke(Map.of("dwlFilePath", dwl.toString(), "includeComments", true, "applyFixes", true), null).get();
+
+    assertEquals(ToolInvocationStatus.success, results[0].getStatus());
+    String written = Files.readString(dwl);
+    assertTrue(written.contains("// greet"));
+  }
+
+  @Test
+  void dwlToolsExposeExpectedToolMetadata() {
+    assertEquals("mule_read_dwl_file", new MuleDwlReadTool().getToolInformation().getName());
+    assertEquals("mule_write_dwl_file", new MuleDwlWriteTool().getToolInformation().getName());
+    assertEquals("mule_optimize_dwl", new MuleDwlOptimizeTool().getToolInformation().getName());
+    assertTrue(new MuleDwlReadTool().getToolInformation().getDescription().contains("read-only"));
+    assertTrue(new MuleDwlWriteTool().getToolInformation().getDescription().contains("%dw 2.0"));
+    assertTrue(new MuleDwlOptimizeTool().getToolInformation().getDescription().contains("groupBy"));
+  }
+
+  @Test
   void transformToolsExposeExpectedToolMetadata() {
     assertEquals("mule_read_transform", new MuleTransformReadTool().getToolInformation().getName());
     assertEquals("mule_write_transform", new MuleTransformWriteTool().getToolInformation().getName());

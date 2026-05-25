@@ -191,6 +191,27 @@
 		</content-type>
 	</extension>
 
+	<!-- Content type for DataWeave .dwl files -->
+	<extension
+		point="org.eclipse.core.contenttype.contentTypes">
+		<content-type
+			id="com.microsoft.copilot.eclipse.ui.dataweaveFile"
+			name="DataWeave File"
+			base-type="org.eclipse.core.runtime.text"
+			file-extensions="dwl"
+			priority="normal">
+		</content-type>
+	</extension>
+
+	<!-- Copilot content assist for DataWeave .dwl files -->
+	<extension
+		point="org.eclipse.ui.workbench.texteditor.contentAssist">
+		<contentAssistProcessor
+			class="com.microsoft.copilot.eclipse.ui.completion.DataWeaveContentAssistProcessor"
+			contentType="com.microsoft.copilot.eclipse.ui.dataweaveFile">
+		</contentAssistProcessor>
+	</extension>
+
 	<!-- Agent file editor registration -->
 	<extension
 		point="org.eclipse.ui.editors">
@@ -202,6 +223,16 @@
 			icon="icons/github_copilot.png">
 			<contentTypeBinding
 				contentTypeId="com.microsoft.copilot.eclipse.ui.agentFile" />
+		</editor>
+		<!-- Text editor for DataWeave .dwl files to enable content assist -->
+		<editor
+			class="org.eclipse.ui.editors.text.TextEditor"
+			contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+			id="com.microsoft.copilot.eclipse.ui.editors.DataWeaveTextEditor"
+			name="Text Editor"
+			icon="icons/text_file.gif">
+			<contentTypeBinding
+				contentTypeId="com.microsoft.copilot.eclipse.ui.dataweaveFile" />
 		</editor>
 	</extension>
 

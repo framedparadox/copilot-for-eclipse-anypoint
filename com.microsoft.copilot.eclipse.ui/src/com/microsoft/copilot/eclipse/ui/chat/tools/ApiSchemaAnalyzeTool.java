@@ -32,8 +32,14 @@ public class ApiSchemaAnalyzeTool extends BaseTool {
     toolInfo.setDisplayDescription("Analyze Mule API schema files");
     toolInfo.setDescription("""
         Analyze RAML, OpenAPI, OData, AsyncAPI, GraphQL, WSDL, XSD, JSON Schema, Avro, CSV, or flat-file metadata.
-        Reports syntax and governance-oriented diagnostics such as missing examples, error responses,
-        security definitions, and APIkit compatibility hints. This tool is read-only.
+        Reports syntax errors and governance diagnostics. Governance issues include: missing required metadata
+        (title, version, baseUri/servers), missing examples on request or response bodies, missing error response
+        definitions (400, 401, 404, 500), no security scheme defined, inline anonymous schemas that should be
+        named reusable types, inconsistent naming conventions across endpoints, and APIkit compatibility issues
+        (RAML baseUri and version must match the APIkit router config, all resources must have at least one method).
+        Common findings: RAML with no securitySchemes, OpenAPI with 200-only responses on POST endpoints,
+        RAML types section missing (all schemas inline), examples that do not validate against their schema.
+        This tool is read-only.
         """);
     toolInfo.setInputSchema(MuleToolInputs.schemaAnalyzeSchema());
     return toolInfo;

@@ -32,8 +32,13 @@ public class MuleCodeReviewTool extends BaseTool {
     toolInfo.setDisplayDescription("Review Mule XML, DataWeave, specs, and tests");
     toolInfo.setDescription("""
         Perform a MuleSoft code review across Mule XML, DataWeave, properties, API specs, MUnit, and POM metadata.
-        Checks structure, naming, duplicate flows, error handling, logging, test coverage, and deployment readiness.
-        This tool is read-only and returns findings by severity with remediation guidance.
+        Checks: flow naming conventions (camelCase verb-noun), duplicate or unused global configs, missing
+        On Error Propagate on HTTP-facing flows, correlation ID propagation in error handlers, property placeholder
+        externalization (secure:: for secrets, plain placeholder for env values), APIkit route coverage vs API spec,
+        DataWeave output type declarations and null-safety, and MUnit test coverage gaps.
+        Common findings: flows with no error handler, hardcoded URLs in global configs, on-error-continue misused
+        as a catch-all, flows with zero MUnit coverage, DataWeave scripts missing output directive.
+        This tool is read-only and returns findings by severity (critical, high, medium, low) with remediation guidance.
         """);
     toolInfo.setInputSchema(MuleToolInputs.codeReviewSchema());
     return toolInfo;

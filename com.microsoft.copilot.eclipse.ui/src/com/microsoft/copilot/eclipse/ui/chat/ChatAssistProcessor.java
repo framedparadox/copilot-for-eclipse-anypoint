@@ -170,13 +170,32 @@ class ChatAssistProcessor implements IContentAssistProcessor {
   public ICompletionProposal[] createCopilotCompletionAgentProposals(String prefix) {
     List<ICompletionProposal> proposals = new ArrayList<>();
     ChatCompletionService commandService = chatServiceManager.getChatCompletionService();
+    String activeModeNameOrId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
+    if (StringUtils.isBlank(activeModeNameOrId)) {
+      ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
+      activeModeNameOrId = activeChatMode != null ? activeChatMode.toString() : null;
+    }
+
+    if (commandService.isConsoleContextCommandAvailable(activeModeNameOrId)
+        && (prefix.isEmpty() || ChatCompletionService.CONSOLE_CONTEXT_COMMAND.startsWith(prefix))) {
+      proposals.add(new ChatCompletionProposal(ChatCompletionService.AGENT_MARK,
+          ChatCompletionService.CONSOLE_CONTEXT_COMMAND, ChatCompletionService.CONSOLE_CONTEXT_DESCRIPTION));
+    }
+
+    if (commandService.isTransformContextCommandAvailable(activeModeNameOrId)
+        && (prefix.isEmpty() || ChatCompletionService.TRANSFORM_CONTEXT_COMMAND.startsWith(prefix))) {
+      proposals.add(new ChatCompletionProposal(ChatCompletionService.AGENT_MARK,
+          ChatCompletionService.TRANSFORM_CONTEXT_COMMAND, ChatCompletionService.TRANSFORM_CONTEXT_DESCRIPTION));
+    }
+
     if (!commandService.isAgentsReady()) {
-      return new ICompletionProposal[0];
+      return proposals.toArray(new ICompletionProposal[0]);
     }
-    // So far no template supports agent mode.
+    // So far no language-server agent command supports agent mode. Local context commands above may still apply.
     if (Objects.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode(), ChatMode.Agent)) {
-      return new ICompletionProposal[0];
+      return proposals.toArray(new ICompletionProposal[0]);
     }
+
     ConversationAgent[] agents = commandService.getAgents();
     for (ConversationAgent agent : agents) {
       if (prefix.isEmpty() || agent.getSlug().startsWith(prefix)) {

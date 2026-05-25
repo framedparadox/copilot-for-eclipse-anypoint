@@ -28,11 +28,17 @@ final class MuleToolInputs {
   static final String SCOPE = "scope";
   static final String API_EXPOSURE = "apiExposure";
   static final String XML_FILE_PATH = "xmlFilePath";
+  static final String DWL_FILE_PATH = "dwlFilePath";
   static final String TRANSFORM_NAME = "transformName";
   static final String TRANSFORM_ID = "transformId";
   static final String DWL_SCRIPT = "dwlScript";
   static final String VARIABLE_NAME = "variableName";
   static final String TARGET = "target";
+  static final String LAYER = "layer";
+  static final String TARGET_ENVIRONMENT = "targetEnvironment";
+  static final String MAVEN_PROFILE = "mavenProfile";
+  static final String INCLUDE_COMMENTS = "includeComments";
+  static final String APPLY_FIXES = "applyFixes";
 
   private MuleToolInputs() {
   }
@@ -68,7 +74,8 @@ final class MuleToolInputs {
     inputSchema.setProperties(Map.of(
         PROJECT_PATH, new InputSchemaPropertyValue("string", "Absolute path to the Mule project folder"),
         FILES, files,
-        REVIEW_TYPE, new InputSchemaPropertyValue("string", "architecture, code, pr, or full")));
+        REVIEW_TYPE, new InputSchemaPropertyValue("string", "architecture, code, pr, or full"),
+        LAYER, new InputSchemaPropertyValue("string", "API-led layer: experience, process, system, or unknown")));
     inputSchema.setRequired(List.of(PROJECT_PATH));
     return inputSchema;
   }
@@ -79,7 +86,9 @@ final class MuleToolInputs {
     inputSchema.setProperties(Map.of(
         PROJECT_PATH, new InputSchemaPropertyValue("string", "Absolute path to the Mule project folder"),
         SCOPE, new InputSchemaPropertyValue("string", "full, changed-files, or active-file"),
-        API_EXPOSURE, new InputSchemaPropertyValue("string", "public, partner, or internal")));
+        API_EXPOSURE, new InputSchemaPropertyValue("string", "public, partner, or internal"),
+        TARGET_ENVIRONMENT,
+        new InputSchemaPropertyValue("string", "cloudhub, cloudhub2, rtf, standalone, or unknown")));
     inputSchema.setRequired(List.of(PROJECT_PATH));
     return inputSchema;
   }
@@ -90,7 +99,8 @@ final class MuleToolInputs {
     inputSchema.setProperties(Map.of(
         PROJECT_PATH, new InputSchemaPropertyValue("string", "Absolute path to the Mule project folder"),
         FLOW_NAME, new InputSchemaPropertyValue("string", "Optional Mule flow name to validate test coverage for"),
-        MUNIT_PATH, new InputSchemaPropertyValue("string", "Optional absolute path to one MUnit suite file")));
+        MUNIT_PATH, new InputSchemaPropertyValue("string", "Optional absolute path to one MUnit suite file"),
+        LAYER, new InputSchemaPropertyValue("string", "API-led layer: experience, process, system, or unknown")));
     inputSchema.setRequired(List.of(PROJECT_PATH));
     return inputSchema;
   }
@@ -161,6 +171,42 @@ final class MuleToolInputs {
         DWL_SCRIPT, new InputSchemaPropertyValue("string",
             "Complete DataWeave 2.0 script starting with %dw 2.0 and output directive")));
     inputSchema.setRequired(List.of(XML_FILE_PATH, DWL_SCRIPT));
+    return inputSchema;
+  }
+
+  static InputSchema dwlReadSchema() {
+    InputSchema inputSchema = new InputSchema();
+    inputSchema.setType("object");
+    inputSchema.setProperties(Map.of(
+        DWL_FILE_PATH, new InputSchemaPropertyValue("string",
+            "Absolute path to a standalone DataWeave module (.dwl) file")));
+    inputSchema.setRequired(List.of(DWL_FILE_PATH));
+    return inputSchema;
+  }
+
+  static InputSchema dwlWriteSchema() {
+    InputSchema inputSchema = new InputSchema();
+    inputSchema.setType("object");
+    inputSchema.setProperties(Map.of(
+        DWL_FILE_PATH, new InputSchemaPropertyValue("string",
+            "Absolute path to the .dwl file to write"),
+        DWL_SCRIPT, new InputSchemaPropertyValue("string",
+            "Complete replacement DataWeave 2.0 script (should start with %dw 2.0 and output directive)")));
+    inputSchema.setRequired(List.of(DWL_FILE_PATH, DWL_SCRIPT));
+    return inputSchema;
+  }
+
+  static InputSchema dwlOptimizeSchema() {
+    InputSchema inputSchema = new InputSchema();
+    inputSchema.setType("object");
+    inputSchema.setProperties(Map.of(
+        DWL_FILE_PATH, new InputSchemaPropertyValue("string",
+            "Absolute path to the .dwl file to analyze and optimize"),
+        INCLUDE_COMMENTS, new InputSchemaPropertyValue("boolean",
+            "Whether to add inline comments to undocumented functions (default: true)"),
+        APPLY_FIXES, new InputSchemaPropertyValue("boolean",
+            "Whether to write the optimized script back to the file (default: false — preview only)")));
+    inputSchema.setRequired(List.of(DWL_FILE_PATH));
     return inputSchema;
   }
 }
