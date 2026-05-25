@@ -103,8 +103,8 @@ Text.copilot-preference-text-input {
 	background-color: #3584F1;
 }
 
-#chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > .bg-command-panel {
-	background-color: #1E1F22;
+#chat-content-viewer > Composite > CopilotTurnWidget > InvokeToolConfirmationDialog > ScrolledComposite > .bg-command-panel {
+	background-color: #48484C;
 }
 
 #chat-content-viewer > Composite > CopilotTurnWidget > .subagent-message-block {
