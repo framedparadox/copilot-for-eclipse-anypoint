@@ -2,7 +2,7 @@ name: Build and Package (p2 ZIP)
 
 on:
   push:
-    branches: [ build ]
+    branches: [ build/win-mac ]
   workflow_dispatch:
 
 env:
@@ -58,7 +58,7 @@ jobs:
         run: |
           ./mvnw -DskipTests -Dcheckstyle.skip=true clean verify
 
-      - name: Prepare build artifact
+      - name: Prepare build artifacts
         run: |
           mkdir -p build
           SRC=com.microsoft.copilot.eclipse.repository/target/com.microsoft.copilot.eclipse.repository-${COPILOT_PLUGIN_VERSION}.zip
@@ -73,17 +73,22 @@ jobs:
             exit 1
           fi
           find build/ -maxdepth 1 -name "github-copilot-for-anypoint-*.zip" -delete 2>/dev/null || true
-          OUT=build/github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}.zip
-          cp -f "$SRC" "$OUT"
-          sha256sum "$OUT" | awk '{print $1 "  " $2}' > "${OUT}.sha256"
+
+          # Create Windows-specific package (win32 only)
+          OUT_WIN=build/github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-win32.zip
+          unzip -q "$SRC" -d temp_win
+          rm -rf temp_win/plugins/*linux* temp_win/plugins/*macosx* temp_win/features/*linux* temp_win/features/*macosx* 2>/dev/null || true
+          cd temp_win && zip -q -r "../${OUT_WIN}" . && cd ..
+          rm -rf temp_win
+          sha256sum "$OUT_WIN" | awk '{print $1 "  " $2}' > "${OUT_WIN}.sha256"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}
           path: |
-            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip
-            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip.sha256
+            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}-win32.zip
+            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}-win32.zip.sha256
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -94,10 +99,19 @@ jobs:
           body: |
             Pre-release build of GitHub Copilot for Anypoint Studio.
 
-            **Install in Anypoint Studio:**
-            Download `github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip` and add it as a local p2 update site.
+            **Installation in Anypoint Studio:**
+
+            - **Windows (64-bit)**: Download `github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}-win32.zip`
+
+            **Installation Steps:**
+            1. In Anypoint Studio, go to **Help → Install New Software...**
+            2. Click **Add...** and select the downloaded ZIP file as a local update site.
+            3. Follow the installation wizard and restart Anypoint Studio.
+
+            **Verification:**
+            Each package includes a `.sha256` file for integrity verification. Use `sha256sum -c file.zip.sha256` to verify the download.
           files: |
-            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip
-            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}.zip.sha256
+            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}-win32.zip
+            build/github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}-win32.zip.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
