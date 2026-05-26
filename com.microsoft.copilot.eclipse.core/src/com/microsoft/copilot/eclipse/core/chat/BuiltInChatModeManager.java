@@ -5,8 +5,10 @@ package com.microsoft.copilot.eclipse.core.chat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.service.BuiltInChatModeService;
 
 /**
@@ -60,10 +62,25 @@ public enum BuiltInChatModeManager {
   }
 
   /**
-   * Reloads built-in chat modes from the LSP API. This should be called when the user switches
-   * to ensure the latest modes are available for the current user context.
+   * Reloads built-in chat modes from the LSP API synchronously. Blocks the calling thread until
+   * the LSP responds. Prefer {@link #reloadModesAsync()} to avoid blocking the UI thread.
    */
   public void reloadModes() {
     loadModesSync();
+  }
+
+  /**
+   * Reloads built-in chat modes from the LSP API asynchronously. Safe to call from the UI thread.
+   * The returned future completes once the modes list has been updated.
+   */
+  public CompletableFuture<Void> reloadModesAsync() {
+    return service.loadBuiltInModes().thenAccept(modes -> {
+      if (modes != null && !modes.isEmpty()) {
+        this.builtInModes = new CopyOnWriteArrayList<>(modes);
+      }
+    }).exceptionally(ex -> {
+      CopilotCore.LOGGER.error("Failed to reload built-in modes asynchronously", ex);
+      return null;
+    });
   }
 }

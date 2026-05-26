@@ -206,6 +206,16 @@ public class UserPreferenceService extends ChatBaseService implements CopilotAut
     String status = copilotStatusResult.getStatus();
     switch (status) {
       case CopilotStatusResult.OK, CopilotStatusResult.NOT_AUTHORIZED:
+        // Asynchronously reload built-in modes in case the LSP was not ready at enum-init time
+        // (startup race condition). Update the observable on completion so the mode picker refreshes.
+        BuiltInChatModeManager.INSTANCE.reloadModesAsync().thenRun(() -> ensureRealm(() -> {
+          if (!Arrays.deepEquals(getAvailableChatModes(), chatModeObservable.getValue())) {
+            chatModeObservable.setValue(getAvailableChatModes());
+          }
+        })).exceptionally(ex -> {
+          CopilotCore.LOGGER.error("Failed to reload built-in modes on status change", ex);
+          return null;
+        });
         init();
         break;
       default:

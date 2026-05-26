@@ -82,6 +82,7 @@ public class AddByokModelDialog extends TrayDialog {
     new Label(container, SWT.NONE).setText(Messages.preferences_page_byok_addModel_modelId);
     modelIdText = new Text(container, SWT.BORDER);
     modelIdText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    PreferencePageUtils.styleTextInput(modelIdText);
     modelIdText.addModifyListener(this::onFieldChanged);
 
     // Provider-specific fields
@@ -93,6 +94,7 @@ public class AddByokModelDialog extends TrayDialog {
     new Label(container, SWT.NONE).setText(Messages.preferences_page_byok_addModel_displayName);
     displayNameText = new Text(container, SWT.BORDER);
     displayNameText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    PreferencePageUtils.styleTextInput(displayNameText);
 
     // Capabilities
     Composite caps = new Composite(container, SWT.NONE);
@@ -119,6 +121,7 @@ public class AddByokModelDialog extends TrayDialog {
     new Label(container, SWT.NONE).setText(Messages.preferences_page_byok_addModel_deploymentUrl);
     deploymentUrlText = new Text(container, SWT.BORDER);
     deploymentUrlText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    PreferencePageUtils.styleTextInput(deploymentUrlText);
     deploymentUrlText.addModifyListener(this::onFieldChanged);
 
     // API Key *
@@ -133,6 +136,7 @@ public class AddByokModelDialog extends TrayDialog {
     apiKeyText = new Text(apiKeyRow, SWT.BORDER);
     apiKeyText.setEchoChar('*');
     apiKeyText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+    PreferencePageUtils.styleTextInput(apiKeyText);
     apiKeyText.addModifyListener(this::onFieldChanged);
 
     eyeOpenImg = UiUtils

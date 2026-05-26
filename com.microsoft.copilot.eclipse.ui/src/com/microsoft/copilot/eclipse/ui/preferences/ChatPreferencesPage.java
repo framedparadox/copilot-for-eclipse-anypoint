@@ -60,6 +60,24 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
     addNote(parent, Messages.preferences_page_watched_files_note_content);
     addSeparator(parent);
 
+    Composite consoleContextComposite = createSectionComposite(parent, gdf);
+    BooleanFieldEditor consoleContextField = new BooleanFieldEditor(Constants.CONSOLE_CONTEXT_ENABLED,
+        Messages.preferences_page_console_context, SWT.WRAP, consoleContextComposite);
+    applyFieldWidthHint(consoleContextField, consoleContextComposite);
+    addField(consoleContextField);
+
+    addNote(parent, Messages.preferences_page_console_context_note_content);
+    addSeparator(parent);
+
+    Composite transformContextComposite = createSectionComposite(parent, gdf);
+    BooleanFieldEditor transformContextField = new BooleanFieldEditor(Constants.TRANSFORM_CONTEXT_ENABLED,
+        Messages.preferences_page_transform_context, SWT.WRAP, transformContextComposite);
+    applyFieldWidthHint(transformContextField, transformContextComposite);
+    addField(transformContextField);
+
+    addNote(parent, Messages.preferences_page_transform_context_note_content);
+    addSeparator(parent);
+
     // Add sub-agent toggle
     Composite subAgentComposite = createSectionComposite(parent, gdf);
     boolean policyAllowsSubAgent = isPolicyAllowsSubAgent();
@@ -103,6 +121,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
         Messages.preferences_page_agent_max_requests, agentMaxRequestsComposite);
     agentMaxRequestsField.setValidRange(1, 500);
     agentMaxRequestsField.setErrorMessage(Messages.preferences_page_agent_max_requests_validation_error);
+    PreferencePageUtils.styleTextInput(agentMaxRequestsField.getTextControl(agentMaxRequestsComposite));
     addField(agentMaxRequestsField);
 
     addNote(parent, Messages.preferences_page_agent_max_requests_desc);

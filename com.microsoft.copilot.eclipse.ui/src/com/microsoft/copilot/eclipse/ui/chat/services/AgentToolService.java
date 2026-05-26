@@ -18,6 +18,9 @@ import org.osgi.framework.Bundle;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.chat.ChatEventsManager;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationAction;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationContent;
+import com.microsoft.copilot.eclipse.core.chat.ConfirmationResult;
 import com.microsoft.copilot.eclipse.core.chat.ToolInvocationListener;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.InvokeClientToolConfirmationParams;
@@ -32,9 +35,13 @@ import com.microsoft.copilot.eclipse.core.utils.JdtUtils;
 import com.microsoft.copilot.eclipse.core.utils.PlatformUtils;
 import com.microsoft.copilot.eclipse.terminal.api.IRunInTerminalTool;
 import com.microsoft.copilot.eclipse.terminal.api.TerminalServiceManager;
+import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.chat.BaseTurnWidget;
 import com.microsoft.copilot.eclipse.ui.chat.ChatContentViewer;
 import com.microsoft.copilot.eclipse.ui.chat.ChatView;
+import com.microsoft.copilot.eclipse.ui.chat.InvokeToolConfirmationDialog;
+import com.microsoft.copilot.eclipse.ui.chat.confirmation.AttachedFileRegistry;
+import com.microsoft.copilot.eclipse.ui.chat.confirmation.ConfirmationService;
 import com.microsoft.copilot.eclipse.ui.chat.tools.ApiSchemaAnalyzeTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.BaseTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.CreateFileTool;
@@ -42,10 +49,15 @@ import com.microsoft.copilot.eclipse.ui.chat.tools.EditFileTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.GetErrorsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.JavaDebuggerToolAdapter;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MuleCodeReviewTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleDwlOptimizeTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleDwlReadTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleDwlWriteTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MuleProjectErrorsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MuleProjectScanTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MuleProjectSummaryTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MuleSecurityReviewTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleTransformReadTool;
+import com.microsoft.copilot.eclipse.ui.chat.tools.MuleTransformWriteTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MunitFullReviewTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MunitImprovementSuggestionsTool;
 import com.microsoft.copilot.eclipse.ui.chat.tools.MunitValidateFlowTestsTool;
@@ -65,6 +77,8 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   protected CopilotLanguageServerConnection lsConnection;
   private volatile boolean terminalToolsRegistered = false;
   private List<LanguageModelToolInformation> cachedBuiltInTools;
+  private final ConfirmationService confirmationService;
+  private final AttachedFileRegistry attachedFileRegistry;
 
   /**
    * Constructor for AgentToolService.
@@ -72,6 +86,10 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
   public AgentToolService(CopilotLanguageServerConnection lsConnection) {
     this.tools = new ConcurrentHashMap<>();
     this.lsConnection = lsConnection;
+    this.attachedFileRegistry = new AttachedFileRegistry();
+    this.confirmationService = new ConfirmationService(
+        CopilotUi.getPlugin().getPreferenceStore(),
+        attachedFileRegistry);
     TerminalServiceManager terminalManager = TerminalServiceManager.getInstance();
     if (terminalManager != null) {
       terminalManager.addListener(this);
@@ -112,6 +130,11 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     registerTool(new ApiSchemaAnalyzeTool());
     registerTool(new MuleCodeReviewTool());
     registerTool(new MuleSecurityReviewTool());
+    registerTool(new MuleTransformReadTool());
+    registerTool(new MuleTransformWriteTool());
+    registerTool(new MuleDwlReadTool());
+    registerTool(new MuleDwlWriteTool());
+    registerTool(new MuleDwlOptimizeTool());
     registerTool(new MunitValidateFlowTestsTool());
     registerTool(new MunitFullReviewTool());
     registerTool(new MunitImprovementSuggestionsTool());
@@ -263,6 +286,29 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return CompletableFuture.completedFuture(result);
     }
 
+    // Resolve the session conversation ID: map subagent conversations to the
+    // parent so that session-scoped approvals apply to the whole chat.
+    String sessionConversationId = params.getConversationId();
+    if (boundChatView != null
+        && !Objects.equals(sessionConversationId,
+            boundChatView.getConversationId())
+        && Objects.equals(sessionConversationId,
+            boundChatView.getSubagentConversationId())) {
+      sessionConversationId = boundChatView.getConversationId();
+    }
+
+    // Auto-approve evaluation
+    ConfirmationResult autoApproveResult =
+        confirmationService.evaluate(params, sessionConversationId);
+    if (autoApproveResult.isAutoApproved()) {
+      return CompletableFuture.completedFuture(
+          new LanguageModelToolConfirmationResult(ToolConfirmationResult.ACCEPT));
+    }
+    if (autoApproveResult.isDismissed()) {
+      return CompletableFuture.completedFuture(
+          new LanguageModelToolConfirmationResult(ToolConfirmationResult.DISMISS));
+    }
+
     BaseTurnWidget turnWidget = boundChatView.getChatContentViewer().getTurnWidget(params.getTurnId());
     if (turnWidget == null) {
       LanguageModelToolConfirmationResult result = new LanguageModelToolConfirmationResult(
@@ -274,13 +320,30 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
     BaseTurnWidget activeTurnWidget = turnWidget.getActiveTurnWidget();
 
     AtomicReference<CompletableFuture<LanguageModelToolConfirmationResult>> ref = new AtomicReference<>();
+    ConfirmationContent content = autoApproveResult.getContent();
     SwtUtils.invokeOnDisplayThread(() -> {
-      ref.set(
-          activeTurnWidget.requestToolExecutionConfirmation(params.getTitle(), params.getMessage(), params.getInput()));
+      ref.set(activeTurnWidget.requestToolExecutionConfirmation(
+          content, params.getInput()));
       boundChatView.getChatContentViewer().refreshScrollerLayout();
     });
 
-    return ref.get();
+    CompletableFuture<LanguageModelToolConfirmationResult> future = ref.get();
+    if (future != null && content != null) {
+      // Capture dialog reference before it can be reset by a new request
+      final InvokeToolConfirmationDialog dialog =
+          activeTurnWidget.getConfirmDialog();
+      final String sessConvId = sessionConversationId;
+      future = future.thenApply(result -> {
+        ConfirmationAction selected = dialog != null
+            ? dialog.getSelectedAction() : null;
+        if (selected != null && selected.isAccept()) {
+          confirmationService.cacheDecision(selected, params,
+              sessConvId);
+        }
+        return result;
+      });
+    }
+    return future;
   }
 
   private boolean validToolConfirmInvokeParams(String conversationId, String turnId) {
@@ -301,6 +364,20 @@ public class AgentToolService implements ToolInvocationListener, TerminalService
       return false;
     }
     return true;
+  }
+
+  /**
+   * Get the confirmation service for auto-approve evaluation.
+   *
+   * @return the confirmation service
+   */
+  public ConfirmationService getConfirmationService() {
+    return confirmationService;
+  }
+
+  /** Returns the registry of user-attached context files. */
+  public AttachedFileRegistry getAttachedFileRegistry() {
+    return attachedFileRegistry;
   }
 
   /**

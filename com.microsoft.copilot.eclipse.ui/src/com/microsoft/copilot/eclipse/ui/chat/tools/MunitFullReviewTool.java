@@ -31,9 +31,15 @@ public class MunitFullReviewTool extends BaseTool {
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDisplayDescription("Review MUnit purpose, coverage, and quality");
     toolInfo.setDescription("""
-        Perform a full read-only MUnit review for Mule flows. Combines structure validation, logical test-purpose
-        checks, component coverage, branch and error-path review, assertion quality, external connector mock coverage,
-        and scenario completeness. Returns structured findings and next actions.
+        Perform a comprehensive read-only MUnit review for Mule flows. Combines all validation checks from
+        munit_validate_flow_tests with deeper scenario analysis: identifies which of happy-path, negative-path,
+        edge-data, connector-failure, and error-contract scenarios are missing per flow; flags assertion quality
+        issues (asserting implementation details instead of output contracts, no assertions on error handler behavior);
+        checks mock coverage completeness (every external connector call mocked vs. only some); reviews Choice
+        router branch coverage and scatter-gather route coverage; and identifies tests that duplicate each other.
+        Use this for a full suite audit before a release or when test quality is unclear.
+        Returns structured findings with missing scenario descriptions and recommended additional test cases.
+        This tool is read-only.
         """);
     toolInfo.setInputSchema(MuleToolInputs.munitValidationSchema());
     return toolInfo;

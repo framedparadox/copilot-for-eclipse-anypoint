@@ -25,5 +25,10 @@
 			languageId="dummy"
 			contentType="com.microsoft.copilot.eclipse.dummy">
 		</contentTypeMapping>
+		<contentTypeMapping
+			id="com.microsoft.copilot.eclipse.ls"
+			languageId="dataweave"
+			contentType="com.microsoft.copilot.eclipse.ui.dataweaveFile">
+		</contentTypeMapping>
 	</extension>
 </plugin>

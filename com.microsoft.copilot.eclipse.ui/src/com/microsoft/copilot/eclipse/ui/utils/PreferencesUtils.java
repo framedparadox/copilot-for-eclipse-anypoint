@@ -12,6 +12,7 @@ import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.CustomInstructionsChatLoadScope;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
+import com.microsoft.copilot.eclipse.ui.preferences.AutoApprovePreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ByokPreferencePage;
 import com.microsoft.copilot.eclipse.ui.preferences.ChatPreferencesPage;
 import com.microsoft.copilot.eclipse.ui.preferences.CompletionsPreferencesPage;
@@ -33,7 +34,7 @@ public class PreferencesUtils {
   public static String[] getAllPreferenceIds() {
     return new String[] { CopilotPreferencesPage.ID, GeneralPreferencesPage.ID, ChatPreferencesPage.ID,
         CompletionsPreferencesPage.ID, CustomInstructionPreferencePage.ID, CustomModesPreferencePage.ID,
-        McpPreferencePage.ID, ByokPreferencePage.ID };
+        McpPreferencePage.ID, ByokPreferencePage.ID, AutoApprovePreferencePage.ID };
   }
 
   /**
@@ -47,6 +48,24 @@ public class PreferencesUtils {
     FeatureFlags flags = plugin != null ? plugin.getFeatureFlags() : null;
     return CopilotUi.getPlugin().getPreferenceStore().getBoolean(Constants.ENABLE_SKILLS)
         && flags != null && flags.isClientPreviewFeatureEnabled();
+  }
+
+  /**
+   * Returns whether console context is enabled for chat.
+   *
+   * @return {@code true} if the user enabled console context, {@code false} otherwise
+   */
+  public static boolean isConsoleContextEnabled() {
+    CopilotUi plugin = CopilotUi.getPlugin();
+    return plugin != null && plugin.getPreferenceStore().getBoolean(Constants.CONSOLE_CONTEXT_ENABLED);
+  }
+
+  /**
+   * @return {@code true} if the user enabled transform context (@transform command), {@code false} otherwise
+   */
+  public static boolean isTransformContextEnabled() {
+    CopilotUi plugin = CopilotUi.getPlugin();
+    return plugin != null && plugin.getPreferenceStore().getBoolean(Constants.TRANSFORM_CONTEXT_ENABLED);
   }
 
   /**

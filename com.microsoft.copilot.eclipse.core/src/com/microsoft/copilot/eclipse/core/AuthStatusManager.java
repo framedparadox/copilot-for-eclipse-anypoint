@@ -4,6 +4,7 @@
 package com.microsoft.copilot.eclipse.core;
 
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -89,10 +90,19 @@ public class AuthStatusManager {
    * @throws InterruptedException if the sign out process is interrupted
    */
   public CopilotStatusResult signOut() throws InterruptedException, ExecutionException {
-    CopilotStatusResult result = connection.signOut().get();
-    setCopilotUser(result.getUser());
-    setCopilotStatus(result.getStatus());
-    return result;
+    try {
+      CopilotStatusResult result = connection.signOut().get();
+      setCopilotUser(result.getUser());
+      setCopilotStatus(result.getStatus());
+      return result;
+    } catch (CancellationException e) {
+      // LS connection is in a broken/uninitialized state; clear local auth state so the user is signed out.
+      setCopilotUser(null);
+      setCopilotStatus(CopilotStatusResult.NOT_SIGNED_IN);
+      CopilotStatusResult notSignedIn = new CopilotStatusResult();
+      notSignedIn.setStatus(CopilotStatusResult.NOT_SIGNED_IN);
+      return notSignedIn;
+    }
   }
 
   /**

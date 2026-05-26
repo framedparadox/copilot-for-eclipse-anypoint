@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.ui.chat;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -80,8 +81,14 @@ import com.microsoft.copilot.eclipse.core.persistence.CopilotTurnData.ToolCallDa
 import com.microsoft.copilot.eclipse.core.persistence.UserTurnData;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 import com.microsoft.copilot.eclipse.ui.UiConstants;
+import com.microsoft.copilot.eclipse.ui.chat.services.AgentToolService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager;
+import com.microsoft.copilot.eclipse.ui.chat.services.ConsoleContextPromptProcessor;
+import com.microsoft.copilot.eclipse.ui.chat.services.ConsoleContextService;
+import com.microsoft.copilot.eclipse.ui.chat.services.ConsoleContextPromptProcessor.ProcessedMessage;
+import com.microsoft.copilot.eclipse.ui.chat.services.TransformEditorContextPromptProcessor;
+import com.microsoft.copilot.eclipse.ui.chat.services.TransformEditorContextService;
 import com.microsoft.copilot.eclipse.ui.chat.services.DebugEventAutoResponseHandler;
 import com.microsoft.copilot.eclipse.ui.chat.services.ReferencedFileService;
 import com.microsoft.copilot.eclipse.ui.chat.services.TodoListService;
@@ -93,6 +100,7 @@ import com.microsoft.copilot.eclipse.ui.chat.viewers.LoadingViewer;
 import com.microsoft.copilot.eclipse.ui.chat.viewers.NoSubscriptionViewer;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
 import com.microsoft.copilot.eclipse.ui.utils.ResourceUtils;
+import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 import com.microsoft.copilot.eclipse.ui.utils.SwtUtils;
 
 /**
@@ -130,6 +138,8 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   // Auto breakpoint response handler
   private DebugEventAutoResponseHandler debugEventHandler;
+  private ConsoleContextService consoleContextService = new ConsoleContextService();
+  private TransformEditorContextService transformEditorContextService = new TransformEditorContextService();
 
   // Event handlers for cleanup
   private EventHandler chatOnSendHandler;
@@ -435,6 +445,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (partRef.getPart(false) == ChatView.this) {
           activateChatViewContext();
         }
+        updateTransformPropertiesHint(partRef, true);
       }
 
       @Override
@@ -442,6 +453,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         if (partRef.getPart(false) == ChatView.this) {
           deactivateChatViewContext();
         }
+        updateTransformPropertiesHint(partRef, false);
       }
 
       @Override
@@ -451,7 +463,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
       @Override
       public void partClosed(IWorkbenchPartReference partRef) {
-        // No action needed
+        updateTransformPropertiesHint(partRef, false);
       }
 
       @Override
@@ -503,6 +515,38 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
       }
       chatViewContextActivation = null;
     }
+  }
+
+  private void updateTransformPropertiesHint(IWorkbenchPartReference partRef, boolean activated) {
+    String partId = partRef.getId();
+    if (!isTransformPropertiesView(partId)) {
+      return;
+    }
+    if (!activated) {
+      transformEditorContextService.clearActiveTransformHint();
+      return;
+    }
+    String title = partRef.getPartName();
+    String[] hint = parseTransformHintFromTitle(title);
+    transformEditorContextService.setActiveTransformHint(hint[0], hint[1]);
+  }
+
+  private boolean isTransformPropertiesView(String partId) {
+    return partId != null && (partId.equals(TransformEditorContextService.MULE_TRANSFORM_VIEW_ID)
+        || partId.startsWith("org.mule.tooling.ui.views.transform")
+        || partId.startsWith("com.mulesoft.studio.properties"));
+  }
+
+  private String[] parseTransformHintFromTitle(String title) {
+    if (title == null || title.isBlank()) {
+      return new String[] {"", ""};
+    }
+    int colonIdx = title.indexOf(':');
+    if (colonIdx >= 0 && colonIdx + 1 < title.length()) {
+      return new String[] {title.substring(colonIdx + 1).trim(), ""};
+    }
+    String cleaned = title.replace("Transform Message", "").trim();
+    return new String[] {cleaned, ""};
   }
 
   /**
@@ -973,15 +1017,26 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
 
   private void onSendInternal(String workDoneToken, String message, String agentSlug, String agentJobWorkspaceFolder,
       boolean createNewTurn) {
-    String processedMessage = replaceWorkspaceCommand(message);
-
-    // Persist the user input to history
-    chatServiceManager.getUserPreferenceService().addInputToHistory(processedMessage);
-
     final ChatMode activeChatMode = chatServiceManager.getUserPreferenceService().getActiveChatMode();
 
     // Get mode information
     String activeModeId = chatServiceManager.getUserPreferenceService().getActiveModeNameOrId();
+    String consoleContextModeId = StringUtils.defaultIfBlank(activeModeId,
+        activeChatMode != null ? activeChatMode.toString() : null);
+    ProcessedMessage consoleProcessedMessage = processConsoleContextCommand(message, consoleContextModeId);
+    TransformEditorContextPromptProcessor.ProcessedMessage transformProcessedMessage =
+        processTransformContextCommand(consoleProcessedMessage.serverMessage(), consoleContextModeId);
+    if (!transformProcessedMessage.transformContextRequested()) {
+      transformProcessedMessage = autoInjectTransformContext(
+          transformProcessedMessage.serverMessage(), consoleContextModeId);
+    }
+    String processedMessage = replaceWorkspaceCommand(transformProcessedMessage.serverMessage());
+    String userMessageToPersist =
+        (consoleProcessedMessage.consoleContextRequested() || transformProcessedMessage.transformContextRequested())
+            ? message : processedMessage;
+
+    // Persist the user input to history
+    chatServiceManager.getUserPreferenceService().addInputToHistory(userMessageToPersist);
 
     // Determine chat mode name and custom mode ID for LSP
     String chatModeName;
@@ -1027,10 +1082,19 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     final CopilotLanguageServerConnection ls = CopilotCore.getPlugin().getCopilotLanguageServer();
     final CopilotModel activeModel = chatServiceManager.getModelService().getActiveModel();
 
+    // Collect attached file paths for auto-approve of file operations.
+    // Stage as pending so confirmation requests can match immediately,
+    // even before the real conversation ID arrives.
+    List<String> pendingAttachedFiles =
+        collectAttachedFilePaths(currentFile, references);
+    stagePendingAttachedFiles(pendingAttachedFiles);
+
     if (conversationState == ConversationState.CONTINUED_CONVERSATION) {
+      // conversationId is already the real one — flush pending into registry
+      flushPendingAttachedFiles(this.conversationId);
       // Continue existing conversation - persist user message and send to existing conversation
       if (persistenceManager != null) {
-        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, processedMessage,
+        this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(conversationId, null, userMessageToPersist,
             activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
@@ -1080,7 +1144,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Load turns from the history conversation and persist user turn with current conversation ID
         turns = persistenceManager.loadConversationTurns(this.conversationId);
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
-            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+            userMessageToPersist, activeModel, chatModeName, customChatModeId, currentFile, references);
 
         // Set conversationId and last completed turnId for CLS server-side session restoration.
         restoredConversationId = this.conversationId;
@@ -1103,7 +1167,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
         // Generate a temporary ID for brand new conversation and persist user turn
         this.conversationId = UUID.randomUUID().toString();
         this.persistUserTurnFuture = persistenceManager.persistUserTurnInfo(this.conversationId, null,
-            processedMessage, activeModel, chatModeName, customChatModeId, currentFile, references);
+            userMessageToPersist, activeModel, chatModeName, customChatModeId, currentFile, references);
       }
 
       List<WorkspaceFolder> workspaceFolders = deriveWorkspaceFolders(currentFile, references);
@@ -1131,6 +1195,9 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           CopilotCore.LOGGER.error("Error updating conversation ID in persistence manager: ", e);
         }
 
+        // Flush pending attached files into the real conversation ID
+        flushPendingAttachedFiles(newConversationId);
+
         // Render model information in the Copilot turn widget
         if (result != null && StringUtils.isNotBlank(result.getModelName())
             && !UiConstants.GITHUB_COPILOT_CODING_AGENT_SLUG.equals(result.getAgentSlug())) {
@@ -1144,6 +1211,7 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
           }
         }
       }).exceptionally(th -> {
+        clearPendingAttachedFiles();
         if (!ConversationUtils.isConversationCancellationThrowable(th)) {
           CopilotCore.LOGGER.error("Error creating new conversation with exception: ", th);
           displayErrorAndResetSendButton(workDoneToken, th.getMessage());
@@ -1210,6 +1278,26 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     return message;
   }
 
+  private ProcessedMessage processConsoleContextCommand(String message, String activeModeId) {
+    return ConsoleContextPromptProcessor.process(message, PreferencesUtils.isConsoleContextEnabled(),
+        ChatCompletionService.isConsoleContextSupportedMode(activeModeId), consoleContextService::captureActiveConsole);
+  }
+
+  private TransformEditorContextPromptProcessor.ProcessedMessage processTransformContextCommand(String message,
+      String activeModeId) {
+    return TransformEditorContextPromptProcessor.process(message, PreferencesUtils.isTransformContextEnabled(),
+        ChatCompletionService.isTransformContextSupportedMode(activeModeId),
+        transformEditorContextService::captureActiveTransformContext);
+  }
+
+  private TransformEditorContextPromptProcessor.ProcessedMessage autoInjectTransformContext(String message,
+      String activeModeId) {
+    return TransformEditorContextPromptProcessor.processAutoInject(message,
+        PreferencesUtils.isTransformContextEnabled(),
+        ChatCompletionService.isTransformContextSupportedMode(activeModeId),
+        transformEditorContextService::captureAutoTransformContext);
+  }
+
   private void displayErrorAndResetSendButton(String workDoneToken, String message) {
     if (message == null) {
       message = Messages.chat_warnWidget_defaultErrorMsg;
@@ -1246,8 +1334,75 @@ public class ChatView extends ViewPart implements ChatProgressListener, MessageL
     }, parent);
   }
 
+  /**
+   * Collects absolute paths of the current file and explicitly attached
+   * references. The returned list is saved to the
+   * {@link AttachedFileRegistry} once a stable conversation ID is available.
+   */
+  private List<String> collectAttachedFilePaths(IFile currentFile,
+      List<IResource> references) {
+    List<String> filePaths = new ArrayList<>();
+    if (currentFile != null && currentFile.getLocation() != null) {
+      filePaths.add(currentFile.getLocation().toOSString());
+    }
+    if (references != null) {
+      for (IResource r : references) {
+        if (r instanceof IFile && r.getLocation() != null) {
+          filePaths.add(r.getLocation().toOSString());
+        }
+      }
+    }
+    return filePaths;
+  }
+
+  /**
+   * Stages file paths as pending in the attached file registry.
+   * These are immediately visible to confirmation handlers.
+   */
+  private void stagePendingAttachedFiles(List<String> filePaths) {
+    if (filePaths.isEmpty() || this.chatServiceManager == null) {
+      return;
+    }
+    AgentToolService agentToolService =
+        this.chatServiceManager.getAgentToolService();
+    if (agentToolService == null) {
+      return;
+    }
+    agentToolService.getAttachedFileRegistry().addPending(filePaths);
+  }
+
+  /**
+   * Flushes pending attached files into per-conversation storage
+   * under the given (stable) conversation ID.
+   */
+  private void flushPendingAttachedFiles(String conversationId) {
+    if (this.chatServiceManager == null
+        || StringUtils.isBlank(conversationId)) {
+      return;
+    }
+    AgentToolService agentToolService =
+        this.chatServiceManager.getAgentToolService();
+    if (agentToolService == null) {
+      return;
+    }
+    agentToolService.getAttachedFileRegistry()
+        .flushPending(conversationId);
+  }
+
+  private void clearPendingAttachedFiles() {
+    if (this.chatServiceManager == null) {
+      return;
+    }
+    AgentToolService agentToolService =
+        this.chatServiceManager.getAgentToolService();
+    if (agentToolService != null) {
+      agentToolService.getAttachedFileRegistry().clearPending();
+    }
+  }
+
   private void clearCurrentConversation() {
     this.onCancel();
+    clearPendingAttachedFiles();
     this.hasHistory = false;
     this.conversationId = "";
     this.conversationState = ConversationState.NEW_CONVERSATION;

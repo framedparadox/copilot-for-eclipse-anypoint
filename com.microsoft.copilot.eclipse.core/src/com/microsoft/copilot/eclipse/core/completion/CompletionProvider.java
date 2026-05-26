@@ -6,6 +6,7 @@ package com.microsoft.copilot.eclipse.core.completion;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -204,6 +205,8 @@ public class CompletionProvider {
           }
 
           this.completions = result.getCompletions();
+        } catch (CancellationException e) {
+          return Status.CANCEL_STATUS;
         } catch (InterruptedException e) {
           return Status.CANCEL_STATUS;
         } catch (ExecutionException e) {
