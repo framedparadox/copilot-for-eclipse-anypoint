@@ -34,7 +34,11 @@ public class MuleProjectSummaryTool extends BaseTool {
         Summarize a MuleSoft Anypoint Studio project by reading Mule XML files under src/main/mule,
         project metadata, API specs, MUnit suites, connectors, deployment plugins, namespaces,
         flows, sub-flows, global configs, processors, and property placeholders.
-        This tool is read-only.
+        Also surfaces: hasApikit, hasSecureProperties, hasBatchJob, hasReconnectForever,
+        log4j2RootLevel, hasDbPoolConfig, hasHttpRequestTimeout, scheduler-triggered flows,
+        flows with correlationId set, and a diagnostic count.
+        Use mule_project_scan for a full structured JSON response including all diagnostics.
+        This tool is read-only and returns a human-readable text summary.
         """);
     toolInfo.setInputSchema(MuleToolInputs.projectPathSchema());
     return toolInfo;

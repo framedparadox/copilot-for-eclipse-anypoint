@@ -20,6 +20,7 @@ import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.PlatformUI;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -44,6 +45,7 @@ class ChatCompletionServiceTest {
   private static ChatCompletionService chatCompletionService;
   private static MockedStatic<CopilotUi> copilotUiMock;
   private static MockedStatic<PlatformUI> platformUiMock;
+  private static IPreferenceStore mockPreferenceStore;
 
   @BeforeAll
   static void setUp() {
@@ -53,7 +55,7 @@ class ChatCompletionServiceTest {
 
     // Mock CopilotUi.getPlugin() so the constructor can register its preference listener
     CopilotUi mockPlugin = mock(CopilotUi.class);
-    IPreferenceStore mockPreferenceStore = mock(IPreferenceStore.class);
+    mockPreferenceStore = mock(IPreferenceStore.class);
     LanguageServerSettingManager mockSettingManager = mock(LanguageServerSettingManager.class);
     when(mockPlugin.getLanguageServerSettingManager()).thenReturn(mockSettingManager);
     when(mockPlugin.getPreferenceStore()).thenReturn(mockPreferenceStore);
@@ -80,6 +82,11 @@ class ChatCompletionServiceTest {
     } catch (InterruptedException e) {
       // ignore
     }
+  }
+
+  @BeforeEach
+  void resetConsoleContextPreference() {
+    when(mockPreferenceStore.getBoolean(Constants.CONSOLE_CONTEXT_ENABLED)).thenReturn(false);
   }
 
   @AfterAll
@@ -121,5 +128,35 @@ class ChatCompletionServiceTest {
   @Test
   void testGetFilteredTemplates() {
     assertNotNull(chatCompletionService.getFilteredTemplates(ChatMode.Ask));
+  }
+
+  @Test
+  void testConsoleContextCommandDisabledByDefault() {
+    assertFalse(chatCompletionService.isCommand("@console", "Ask"));
+  }
+
+  @Test
+  void testConsoleContextCommandEnabledForBuiltInModes() {
+    when(mockPreferenceStore.getBoolean(Constants.CONSOLE_CONTEXT_ENABLED)).thenReturn(true);
+
+    assertTrue(chatCompletionService.isCommand("@console", "Ask"));
+    assertTrue(chatCompletionService.isCommand("@console", "Agent"));
+    assertTrue(chatCompletionService.isCommand("@console", "Plan"));
+  }
+
+  @Test
+  void testConsoleContextCommandUnavailableForCustomAgents() {
+    when(mockPreferenceStore.getBoolean(Constants.CONSOLE_CONTEXT_ENABLED)).thenReturn(true);
+
+    assertFalse(chatCompletionService.isCommand("@console", "file:///workspace/.github/agents/custom.agent.md"));
+  }
+
+  @Test
+  void testConsoleContextCommandUnavailableWhenModeIsNull() {
+    // When the active mode is null (unknown), @console should not be available even if pref is enabled,
+    // since we cannot verify that the mode supports it.
+    when(mockPreferenceStore.getBoolean(Constants.CONSOLE_CONTEXT_ENABLED)).thenReturn(true);
+
+    assertFalse(chatCompletionService.isCommand("@console", null));
   }
 }

@@ -64,6 +64,10 @@ final class MuleProjectAnalyzer {
 
     listFiles(projectPath.resolve("src/main/mule"), ".xml")
         .forEach(file -> parseMuleXml(projectPath, file, analysis));
+    Path log4j2Path = projectPath.resolve("src/main/resources/log4j2.xml");
+    if (Files.isRegularFile(log4j2Path)) {
+      parseLog4j2(log4j2Path, analysis);
+    }
     listFiles(projectPath.resolve("src/main/resources"), null).forEach(file -> {
       String relative = relativize(projectPath, file);
       analysis.resourceFiles.add(relative);
@@ -91,6 +95,22 @@ final class MuleProjectAnalyzer {
     response.addArtifact("subFlows=" + String.join(", ", analysis.subFlows));
     response.addArtifact("globalConfigs=" + String.join(", ", analysis.globalConfigs));
     response.addArtifact("propertyPlaceholders=" + String.join(", ", analysis.placeholders));
+    response.addArtifact("hasApikit=" + analysis.hasApikit);
+    response.addArtifact("hasSecureProperties=" + analysis.hasSecureProperties);
+    response.addArtifact("hasBatchJob=" + analysis.hasBatchJob);
+    response.addArtifact("schedulerFlows=" + String.join(", ", analysis.schedulerFlows));
+    response.addArtifact("hasReconnectForever=" + analysis.hasReconnectForever);
+    response.addArtifact("log4j2RootLevel=" + blankToUnknown(analysis.log4j2RootLevel));
+    response.addArtifact("hasDbPoolConfig=" + analysis.hasDbPoolConfig);
+    response.addArtifact("hasHttpRequestTimeout=" + analysis.hasHttpRequestTimeout);
+    response.addArtifact("flowsWithCorrelationId=" + String.join(", ", analysis.flowsWithCorrelationId));
+    String errorHandlerSummary = analysis.flowErrorHandlerTypes.entrySet().stream()
+        .map(e -> e.getKey() + ":" + e.getValue()).collect(Collectors.joining(", "));
+    response.addArtifact("flowErrorHandlerTypes=" + (errorHandlerSummary.isBlank() ? "none" : errorHandlerSummary));
+    if (!analysis.untilSuccessfulWithoutMaxRetries.isEmpty()) {
+      response.addArtifact("untilSuccessfulWithoutMaxRetries=" + String.join(", ",
+          analysis.untilSuccessfulWithoutMaxRetries));
+    }
     response.addDiagnostics(analysis.diagnostics);
     response.addNextAction("Run mule_code_review for maintainability findings.");
     response.addNextAction("Run mule_security_review before committing Mule configuration or property changes.");
@@ -282,6 +302,21 @@ final class MuleProjectAnalyzer {
     analysis.processorCounts.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder())).limit(25)
         .forEach(entry -> builder.append("- ").append(entry.getKey()).append(": ").append(entry.getValue())
             .append(System.lineSeparator()));
+    builder.append("hasApikit: ").append(analysis.hasApikit).append(System.lineSeparator());
+    builder.append("hasSecureProperties: ").append(analysis.hasSecureProperties).append(System.lineSeparator());
+    builder.append("hasBatchJob: ").append(analysis.hasBatchJob).append(System.lineSeparator());
+    builder.append("hasReconnectForever: ").append(analysis.hasReconnectForever).append(System.lineSeparator());
+    builder.append("log4j2RootLevel: ").append(blankToUnknown(analysis.log4j2RootLevel)).append(System.lineSeparator());
+    builder.append("hasDbPoolConfig: ").append(analysis.hasDbPoolConfig).append(System.lineSeparator());
+    builder.append("hasHttpRequestTimeout: ").append(analysis.hasHttpRequestTimeout).append(System.lineSeparator());
+    if (!analysis.schedulerFlows.isEmpty()) {
+      appendList(builder, "Scheduler-triggered flows", analysis.schedulerFlows);
+    }
+    if (!analysis.flowsWithCorrelationId.isEmpty()) {
+      appendList(builder, "Flows with correlationId set", analysis.flowsWithCorrelationId);
+    }
+    builder.append("Diagnostics: ").append(analysis.diagnostics.size())
+        .append(" finding(s) — run mule_project_scan for full details.").append(System.lineSeparator());
     return builder.toString();
   }
 
@@ -327,6 +362,7 @@ final class MuleProjectAnalyzer {
       collectNamespaces(root, analysis);
       collectPlaceholders(root.getTextContent(), analysis.placeholders);
       collectElements(root, analysis);
+      analyzeFlowDetails(document, analysis);
     } catch (Exception e) {
       analysis.diagnostics.add(MuleDiagnostic.high(relative, 0, "Failed to parse Mule XML: " + e.getMessage(),
           "Fix XML syntax before asking Copilot to edit or review this file."));
@@ -368,6 +404,22 @@ final class MuleProjectAnalyzer {
       } else if (element.getParentNode() == root) {
         analysis.globalConfigs.add(qualifiedName + optionalName(element));
       }
+      if ("reconnect-forever".equals(localName)) {
+        analysis.hasReconnectForever = true;
+      }
+      if ("job".equals(localName) && qualifiedName.startsWith("batch:")) {
+        analysis.hasBatchJob = true;
+      }
+      if ("until-successful".equals(localName) && !element.hasAttribute("maxRetries")) {
+        String docName = element.getAttribute("doc:name");
+        analysis.untilSuccessfulWithoutMaxRetries.add(docName.isBlank() ? "unnamed" : docName);
+      }
+      if (element.hasAttribute("minPoolSize")) {
+        analysis.hasDbPoolConfig = true;
+      }
+      if (element.hasAttribute("responseTimeout")) {
+        analysis.hasHttpRequestTimeout = true;
+      }
       collectPlaceholders(element.getTextContent(), analysis.placeholders);
       collectAttributePlaceholders(element, analysis.placeholders);
     }
@@ -387,6 +439,37 @@ final class MuleProjectAnalyzer {
     if (analysis.apiSpecFiles.isEmpty()) {
       analysis.diagnostics.add(MuleDiagnostic.low("src/main/resources", 0, "No API specification files were found.",
           "Add RAML/OpenAPI/AsyncAPI/WSDL/XSD contracts when this Mule app exposes or consumes APIs."));
+    }
+    if (analysis.hasReconnectForever) {
+      analysis.diagnostics.add(MuleDiagnostic.medium("src/main/mule", 0,
+          "reconnect-forever detected in connector configuration.",
+          "Replace reconnect-forever with reconnect (finite retries and frequency) to prevent indefinite thread blocking in production."));
+    }
+    if (!analysis.untilSuccessfulWithoutMaxRetries.isEmpty()) {
+      analysis.diagnostics.add(MuleDiagnostic.medium("src/main/mule", 0,
+          "until-successful usage without maxRetries: " + String.join(", ", analysis.untilSuccessfulWithoutMaxRetries),
+          "Set maxRetries and millisBetweenRetries on all until-successful scopes to prevent runaway retry loops."));
+    }
+    if (!analysis.log4j2RootLevel.isBlank()
+        && (analysis.log4j2RootLevel.equalsIgnoreCase("debug")
+            || analysis.log4j2RootLevel.equalsIgnoreCase("trace"))) {
+      analysis.diagnostics.add(MuleDiagnostic.medium("src/main/resources/log4j2.xml", 0,
+          "Root log level is " + analysis.log4j2RootLevel.toUpperCase() + " which is not suitable for production.",
+          "Set the root logger level to INFO or WARN before deploying to production environments."));
+    }
+    boolean hasDbConnector = analysis.connectorDependencies.stream()
+        .anyMatch(d -> d.toLowerCase(Locale.ROOT).contains("db") || d.toLowerCase(Locale.ROOT).contains("database"));
+    if (hasDbConnector && !analysis.hasDbPoolConfig) {
+      analysis.diagnostics.add(MuleDiagnostic.medium("src/main/mule", 0,
+          "Database connector dependency found but no connection pool configuration (minPoolSize/maxPoolSize) was detected.",
+          "Add connection pool settings to db:config to prevent connection exhaustion under load."));
+    }
+    boolean hasHttpConnector = analysis.connectorDependencies.stream()
+        .anyMatch(d -> d.toLowerCase(Locale.ROOT).contains("http"));
+    if (hasHttpConnector && !analysis.hasHttpRequestTimeout) {
+      analysis.diagnostics.add(MuleDiagnostic.medium("src/main/mule", 0,
+          "HTTP connector found but no responseTimeout was detected in HTTP Request configurations.",
+          "Set responseTimeout on http:request-config to prevent threads blocking indefinitely on slow upstreams."));
     }
     detectDuplicateNames("flow", analysis.flows, analysis.diagnostics);
     detectDuplicateNames("sub-flow", analysis.subFlows, analysis.diagnostics);
@@ -988,6 +1071,98 @@ final class MuleProjectAnalyzer {
     }
     String name = element.getAttribute("name");
     return name.isBlank() ? "" : name;
+  }
+
+  private static void analyzeFlowDetails(Document document, MuleProjectAnalysis analysis) {
+    NodeList flows = document.getElementsByTagNameNS("*", "flow");
+    for (int i = 0; i < flows.getLength(); i++) {
+      if (!(flows.item(i) instanceof Element flow)) {
+        continue;
+      }
+      String flowName = flow.getAttribute("name");
+      if (flowName.isBlank()) {
+        continue;
+      }
+      detectSchedulerSource(flow, flowName, analysis);
+      detectCorrelationIdUsage(flow, flowName, analysis);
+      detectFlowErrorHandlerType(flow, flowName, analysis);
+    }
+  }
+
+  private static void detectSchedulerSource(Element flow, String flowName, MuleProjectAnalysis analysis) {
+    NodeList children = flow.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+      if (!(children.item(i) instanceof Element firstChild)) {
+        continue;
+      }
+      String lname = localName(firstChild);
+      if ("scheduler".equals(lname) || "poll".equals(lname)) {
+        analysis.schedulerFlows.add(flowName);
+      }
+      return; // Only inspect the first element child (the source)
+    }
+  }
+
+  private static void detectCorrelationIdUsage(Element flow, String flowName, MuleProjectAnalysis analysis) {
+    NodeList setVars = flow.getElementsByTagNameNS("*", "set-variable");
+    for (int i = 0; i < setVars.getLength(); i++) {
+      if (!(setVars.item(i) instanceof Element setVar)) {
+        continue;
+      }
+      String varName = setVar.getAttribute("variableName");
+      if ("correlationId".equalsIgnoreCase(varName) || "correlationID".equalsIgnoreCase(varName)) {
+        analysis.flowsWithCorrelationId.add(flowName);
+        return;
+      }
+      String value = setVar.getAttribute("value");
+      if (value.contains("X-Correlation-ID") || value.contains("correlationId")) {
+        analysis.flowsWithCorrelationId.add(flowName);
+        return;
+      }
+    }
+  }
+
+  private static void detectFlowErrorHandlerType(Element flow, String flowName, MuleProjectAnalysis analysis) {
+    NodeList errorHandlers = flow.getElementsByTagNameNS("*", "error-handler");
+    if (errorHandlers.getLength() == 0) {
+      analysis.flowErrorHandlerTypes.put(flowName, "none");
+      return;
+    }
+    Element errorHandler = (Element) errorHandlers.item(0);
+    boolean allTyped = true;
+    int handlerCount = 0;
+    NodeList onErrors = errorHandler.getChildNodes();
+    for (int i = 0; i < onErrors.getLength(); i++) {
+      if (!(onErrors.item(i) instanceof Element onError)) {
+        continue;
+      }
+      String lname = localName(onError);
+      if ("on-error-propagate".equals(lname) || "on-error-continue".equals(lname)) {
+        handlerCount++;
+        if (onError.getAttribute("type").isBlank()) {
+          allTyped = false;
+        }
+      }
+    }
+    analysis.flowErrorHandlerTypes.put(flowName, handlerCount == 0 ? "none" : (allTyped ? "typed" : "catch-all"));
+  }
+
+  private static void parseLog4j2(Path log4j2Path, MuleProjectAnalysis analysis) {
+    try {
+      Document doc = parseXml(log4j2Path);
+      for (String tagName : List.of("Root", "AsyncRoot")) {
+        NodeList nodes = doc.getElementsByTagName(tagName);
+        if (nodes.getLength() > 0) {
+          String level = ((Element) nodes.item(0)).getAttribute("level");
+          if (!level.isBlank()) {
+            analysis.log4j2RootLevel = level;
+            return;
+          }
+        }
+      }
+    } catch (Exception ignored) {
+      // log4j2.xml parse failure is non-critical
+    }
   }
 
   private static Document parseXml(Path file) throws Exception {

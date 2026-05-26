@@ -84,6 +84,7 @@ public class GeneralPreferencesPage extends FieldEditorPreferencePage implements
     StringFieldEditor sftGhe = new StringFieldEditor(Constants.GITHUB_ENTERPRISE,
         Messages.preferences_page_github_enterprise, ctnGhe);
     sftGhe.getLabelControl(ctnGhe).setToolTipText(Messages.preferences_page_github_enterprise_tooltip);
+    PreferencePageUtils.styleTextInput(sftGhe.getTextControl(ctnGhe));
     addField(sftGhe);
 
     // What's new group

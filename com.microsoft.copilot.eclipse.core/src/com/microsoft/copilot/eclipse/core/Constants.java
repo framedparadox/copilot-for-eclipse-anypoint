@@ -26,6 +26,8 @@ public class Constants {
   public static final String PROXY_KERBEROS_SP = "proxyKerberosSp";
   public static final String GITHUB_ENTERPRISE = "githubEnterprise";
   public static final String WORKSPACE_CONTEXT_ENABLED = "workspaceContextEnabled";
+  public static final String CONSOLE_CONTEXT_ENABLED = "consoleContextEnabled";
+  public static final String TRANSFORM_CONTEXT_ENABLED = "transformContextEnabled";
   public static final String SUB_AGENT_ENABLED = "subAgentEnabled";
   public static final String AGENT_MAX_REQUESTS = "agentMaxRequests";
   public static final String ENABLE_SKILLS = "enableSkills";
@@ -53,6 +55,16 @@ public class Constants {
   public static final String AUTO_BREAKPOINT_RESPONSE = "autoBreakpointResponse";
   public static final String GITHUB_JOBS_VIEW_ID = "com.microsoft.copilot.eclipse.ui.jobs.JobsView";
   public static final String SUPPRESS_TERMINAL_DEPENDENCY_DIALOG = "suppressTerminalDependencyDialog";
+
+  // Auto-Approve settings
+  public static final String AUTO_APPROVE_TERMINAL_RULES = "autoApproveTerminalRules";
+  public static final String AUTO_APPROVE_UNMATCHED_TERMINAL = "autoApproveUnmatchedTerminal";
+  public static final String AUTO_APPROVE_FILE_OP_RULES = "autoApproveEditRules";
+  public static final String AUTO_APPROVE_UNMATCHED_FILE_OP = "autoApproveUnmatchedFileOp";
+  public static final String AUTO_APPROVE_MCP_SERVERS = "autoApproveMcpServers";
+  public static final String AUTO_APPROVE_MCP_TOOLS = "autoApproveMcpTools";
+  public static final String AUTO_APPROVE_TRUST_TOOL_ANNOTATIONS = "autoApproveTrustToolAnnotations";
+  public static final String AUTO_APPROVE_YOLO_MODE = "autoApproveYoloMode";
 
   // Base excluded file types shared by both
   // Copied from InelliJ, excluded file extension list

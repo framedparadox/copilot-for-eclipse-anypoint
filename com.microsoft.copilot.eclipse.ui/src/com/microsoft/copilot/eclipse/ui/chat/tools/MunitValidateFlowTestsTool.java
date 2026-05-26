@@ -31,9 +31,15 @@ public class MunitValidateFlowTestsTool extends BaseTool {
     toolInfo.setName(TOOL_NAME);
     toolInfo.setDisplayDescription("Validate MUnit purpose, structure, and flow coverage");
     toolInfo.setDescription("""
-        Validate MUnit suites for Mule flows. Checks whether tests have a logical purpose, whether MUnit namespaces,
-        schema locations, munit:config, execution, validation, assertions, mocks, spies, and verify-call processors are
-        present, and whether flow components and behavioral aspects are covered. This tool is read-only.
+        Validate MUnit suites for Mule flows. Checks: MUnit and MUnit Tools namespace declarations, munit:config
+        presence, test execution elements (munit:execution), assertion elements (munit:assert-that or munit-tools),
+        mock-when usage for external connectors, spy and verify-call usage, and whether each test has a clear
+        logical purpose tied to a specific flow scenario (happy path, error path, branch path).
+        Coverage checks: identifies flows with no corresponding MUnit test, identifies munit:test elements with
+        no assertions (tests that never fail), identifies missing connector mocks (tests that would make real
+        external calls), and identifies untested Choice router branches.
+        Use this tool after generating tests to confirm structural completeness before running Maven.
+        This tool is read-only.
         """);
     toolInfo.setInputSchema(MuleToolInputs.munitValidationSchema());
     return toolInfo;

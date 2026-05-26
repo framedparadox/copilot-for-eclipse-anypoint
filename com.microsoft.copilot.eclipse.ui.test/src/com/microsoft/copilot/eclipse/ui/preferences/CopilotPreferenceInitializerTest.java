@@ -39,4 +39,13 @@ class CopilotPreferenceInitializerTest {
     boolean autoShowWhatsNew = configPrefs.getBoolean(Constants.AUTO_SHOW_WHAT_IS_NEW, true);
     assertFalse(autoShowWhatsNew);
   }
+
+  @Test
+  void testInitializeDefaultPreferences_ShouldDisableConsoleContextByDefault() {
+    initializer.initializeDefaultPreferences();
+
+    boolean consoleContextEnabled = CopilotUi.getPlugin().getPreferenceStore()
+        .getDefaultBoolean(Constants.CONSOLE_CONTEXT_ENABLED);
+    assertFalse(consoleContextEnabled);
+  }
 }

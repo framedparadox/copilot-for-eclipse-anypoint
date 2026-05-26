@@ -214,6 +214,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
     };
 
     mcpField.getLabelControl(mcpFieldContainer).setToolTipText(Messages.preferences_page_mcp_tooltip);
+    PreferencePageUtils.styleTextInput(mcpField.getTextControl(mcpFieldContainer));
     // @formatter:off
     mcpField.getLabelControl(mcpFieldContainer).setLayoutData(new GridData(
         SWT.LEFT,
@@ -313,6 +314,7 @@ public class McpPreferencePage extends FieldEditorPreferencePage implements IWor
         updateRegistryButtonState();
       }
     };
+    PreferencePageUtils.styleTextInput(mcpRegistryField.getTextControl(mcpRegistryFieldContainer));
     addField(mcpRegistryField);
 
     // Add Open MCP Registry button
