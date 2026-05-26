@@ -1,4 +1,4 @@
-name: Build and Package (p2 ZIP)
+name: Build GitHub Copilot for Anypoint Studio (Windows, macOS & Universal)
 
 on:
   push:
@@ -113,6 +113,7 @@ jobs:
           tag_name: "v${{ env.COPILOT_DISPLAY_VERSION }}"
           name: "GitHub Copilot for Anypoint Studio v${{ env.COPILOT_DISPLAY_VERSION }}"
           prerelease: true
+          generate_release_notes: true
           body: |
             Pre-release build of GitHub Copilot for Anypoint Studio.
 

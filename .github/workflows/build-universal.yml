@@ -1,4 +1,4 @@
-name: Build and Package (p2 ZIP)
+name: Build GitHub Copilot for Anypoint Studio (Universal)
 
 on:
   push:
