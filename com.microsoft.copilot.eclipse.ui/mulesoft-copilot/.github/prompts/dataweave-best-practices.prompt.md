@@ -3,9 +3,7 @@ mode: agent
 tools:
   - mule_project_scan
   - mule_read_transform
-  - mulesoft/dataweave_run_script_tool
-  - mulesoft/dataweave_get_project_metadata
-  - mulesoft/dataweave_create_documentation
+  - mule_optimize_dwl
 ---
 # DataWeave Best Practices Review
 
@@ -42,12 +40,12 @@ Run `mule_project_scan` to find Transform Message components. Use `mule_read_tra
 ## Modularity and Reuse
 - Repeated DataWeave logic (date formatting, error response building, field masking) should be extracted to a DataWeave module (`.dwl` file in `src/main/resources/dwl/`) and imported with `import` directive.
 - Flag copy-pasted DataWeave snippets that appear in 3 or more Transform Message components — these are candidates for a shared module.
-- Use `mulesoft/dataweave_create_documentation` to document complex module functions.
+- Document complex module functions with inline DataWeave comments (`// ...`) describing input shape, output shape, and edge cases.
 
 ## Type Safety and Documentation
 - Complex scripts should document the expected input type as an inline comment: `// Input: { orderId: String, items: Array<{sku: String, qty: Number}> }`.
 - Use named types in DataWeave type system for shared structures: `type OrderItem = { sku: String, qty: Number }`.
-- When using `mulesoft/dataweave_run_script_tool` to test a script, always test with: a valid input, a null/empty input, and a malformed input to verify null-safety and error handling.
+- When recommending a script change, suggest exercising it through MUnit or Maven test runs against representative inputs: a valid input, a null/empty input, and a malformed input.
 
 ## Output
-Return findings per Transform Message component: component name/ID, file reference, issues found, corrected DataWeave snippet, and a test command using `mulesoft/dataweave_run_script_tool` to validate the fix.
+Return findings per Transform Message component: component name/ID, file reference, issues found, corrected DataWeave snippet, and an MUnit/Maven test outline to validate the fix.

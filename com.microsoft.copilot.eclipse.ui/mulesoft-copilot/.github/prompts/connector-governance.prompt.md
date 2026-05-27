@@ -3,7 +3,6 @@ mode: agent
 tools:
   - mule_project_scan
   - mule_code_review
-  - mulesoft/search_asset
 ---
 # Connector Governance Review
 
@@ -13,7 +12,7 @@ Run `mule_project_scan` to collect the Mule runtime version and the full list of
 - Every connector version must be compatible with the project's Mule runtime version. Mulesoft publishes a compatibility matrix on the documentation site.
 - Flag connectors pinned to EOL versions: HTTP Connector v1 (use v2+), File Connector v1 (use File Connector v2), FTP Connector v1 (use FTP v2), Database Connector v1 (use DB Connector v8+).
 - Minor version mismatches between connectors (e.g., HTTP 1.5.x used with Mule 4.4.x when 1.7.x is available) should be flagged as upgrade opportunities.
-- Use `mulesoft/search_asset` to look up the latest patch version of a connector in Exchange when a version upgrade is recommended.
+- When recommending a version upgrade, point the user to Exchange (https://anypoint.mulesoft.com/exchange/) to confirm the latest patch version.
 
 ## Redundant or Duplicate Connectors
 - Flag POM dependencies that import two versions of the same connector (e.g., `mule-http-connector` appears twice at different versions). Only one version can be active at runtime.

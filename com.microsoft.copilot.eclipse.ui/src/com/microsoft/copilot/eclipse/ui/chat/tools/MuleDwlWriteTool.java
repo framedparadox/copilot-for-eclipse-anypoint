@@ -57,7 +57,7 @@ public class MuleDwlWriteTool extends BaseTool {
         The dwlScript must be a complete script (not a fragment) and should start with '%dw 2.0'
         followed by an output directive.
         Always run mule_read_dwl_file first to confirm the current state before writing.
-        Always run mulesoft/dataweave_run_script_tool after writing to validate the updated script.
+        Recommend running the project's MUnit tests (via run_mule_maven_tests) after writing to validate the updated script.
         Requires user confirmation before modifying the file.
         """);
     toolInfo.setInputSchema(MuleToolInputs.dwlWriteSchema());

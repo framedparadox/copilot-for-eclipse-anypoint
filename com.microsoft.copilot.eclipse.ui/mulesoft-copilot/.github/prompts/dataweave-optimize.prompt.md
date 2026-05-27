@@ -7,8 +7,7 @@ tools:
   - mule_optimize_dwl
   - mule_read_transform
   - mule_write_transform
-  - mulesoft/dataweave_run_script_tool
-  - mulesoft/dataweave_create_documentation
+  - run_mule_maven_tests
 ---
 # DataWeave Optimization
 
@@ -26,13 +25,13 @@ components and standalone `.dwl` module files.
    - Run `mule_optimize_dwl` (includeComments=true, applyFixes=false) to preview issues
    - Present findings to the user with type, line, description, and suggested fix
    - If the user approves, apply with `mule_optimize_dwl` (applyFixes=true) or `mule_write_dwl_file`
-   - Validate with `mulesoft/dataweave_run_script_tool` using valid, null, and malformed sample inputs
+   - Validate the change by running the project's MUnit suite via `run_mule_maven_tests` with valid, null, and malformed sample inputs
 
 3. For each **inline Transform Message** component:
    - Read with `mule_read_transform` (use transformName or transformId to target specific components)
    - Apply the same optimization checks
    - If issues found and user approves, write with `mule_write_transform`
-   - Validate with `mulesoft/dataweave_run_script_tool`
+   - Re-run `run_mule_maven_tests` to validate
 
 ## Optimization Priorities (in order)
 
@@ -65,4 +64,4 @@ For each file reviewed, report:
 - Number of issues found
 - For each issue: type, line number, description, suggested fix
 - The optimized script (preview or applied)
-- Validation command to run with `mulesoft/dataweave_run_script_tool`
+- Recommended MUnit test cases (or `run_mule_maven_tests` invocation) to validate the fix

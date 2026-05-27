@@ -3,11 +3,10 @@ mode: agent
 tools:
   - mule_project_scan
   - mule_code_review
-  - mulesoft/get_platform_insights
 ---
 # Logging and Observability Review
 
-Run `mule_project_scan` to identify flows, connectors, and log4j2 configuration. Run `mule_code_review` with reviewType `logging`. Use `mulesoft/get_platform_insights` to check available monitoring metrics in Anypoint Platform.
+Run `mule_project_scan` to identify flows, connectors, and log4j2 configuration. Run `mule_code_review` with reviewType `logging`. Ask the user to confirm what monitoring/observability is wired up in Anypoint Platform (Anypoint Monitoring, Splunk, ELK, Prometheus, etc.) so recommendations match the environment.
 
 ## Correlation ID Strategy
 - Correlation IDs enable distributed tracing across systems. Every inbound HTTP Listener must set a correlation ID at the source: use the `X-Correlation-ID` request header if present, otherwise generate one with `uuid()`.
@@ -45,8 +44,8 @@ Run `mule_project_scan` to identify flows, connectors, and log4j2 configuration.
 - JSON layout appender preferred for machine-parseable logs: `<JsonTemplateLayout eventTemplateUri="classpath:EcsLayout.json" />` or similar.
 
 ## Anypoint Monitoring and Metrics
-- Use `mulesoft/get_platform_insights` to verify that the application has Anypoint Monitoring enabled in the target environment.
-- Flag applications deployed without Anypoint Monitoring — no visibility into response times, error rates, or connector health.
+- Ask the user to confirm that the application has Anypoint Monitoring enabled in the target environment (or an equivalent observability stack).
+- Flag applications deployed without any monitoring solution — no visibility into response times, error rates, or connector health.
 - Custom metrics can be emitted from Mule flows using the Anypoint Monitoring Custom Metrics feature. Recommend adding custom metrics for: processing time per record, error counts by type, integration payload sizes.
 - CloudHub 2 and Runtime Fabric deployments should also expose a `/metrics` endpoint compatible with Prometheus scraping if the operations team uses Prometheus/Grafana.
 

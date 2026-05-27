@@ -340,23 +340,19 @@ class MuleAgentToolsTest {
   }
 
   @Test
-  void mulesoftAgentAssetsExposeLocalTransformAndMcpTools() throws Exception {
+  void mulesoftAgentAssetsExposeLocalTransformTools() throws Exception {
     Path repo = findRepoRoot();
     String anypointTemplate = Files.readString(
         repo.resolve("com.microsoft.copilot.eclipse.anypoint/templates/mulesoft-agent.agent.md"));
     String bundledAgent = Files.readString(repo.resolve(
         "com.microsoft.copilot.eclipse.ui/mulesoft-copilot/.github/agents/mulesoft-engineer.agent.md"));
-    String munitPrompt = Files.readString(repo.resolve(
-        "com.microsoft.copilot.eclipse.ui/mulesoft-copilot/.github/prompts/generate-munit-tests.prompt.md"));
 
     assertTrue(anypointTemplate.contains("- mule_read_transform"));
     assertTrue(anypointTemplate.contains("- mule_write_transform"));
-    assertTrue(anypointTemplate.contains("- mulesoft/generate_or_modify_munit_test"));
-    assertFalse(anypointTemplate.contains("generate_or_modify_munit\n"));
+    assertFalse(anypointTemplate.contains("mulesoft/"));
     assertTrue(bundledAgent.contains("- mule_read_transform"));
     assertTrue(bundledAgent.contains("- mule_write_transform"));
-    assertTrue(bundledAgent.contains("- mulesoft/generate_or_modify_munit_test"));
-    assertTrue(munitPrompt.contains("- mulesoft/generate_or_modify_munit_test"));
+    assertFalse(bundledAgent.contains("mulesoft/"));
   }
 
   private Path createMuleProject() throws Exception {

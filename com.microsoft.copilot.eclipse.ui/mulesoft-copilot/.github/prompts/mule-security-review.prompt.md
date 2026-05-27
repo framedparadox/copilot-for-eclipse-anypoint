@@ -4,8 +4,6 @@ tools:
   - mule_project_scan
   - mule_security_review
   - api_schema_analyze
-  - mulesoft/list_api_instances
-  - mulesoft/manage_api_instance_policy
 ---
 # MuleSoft Security Review
 
@@ -34,7 +32,7 @@ Run `mule_project_scan` first, then `mule_security_review`. Analyze Mule XML, pr
 - Flag flows that return 200 on auth failure instead of 401/403.
 
 ## API Policies
-- Use `mulesoft/list_api_instances` and `mulesoft/manage_api_instance_policy` to verify that deployed API instances have at minimum: Rate Limiting or SLA-based throttling, Client ID Enforcement or OAuth, and IP allowlist where applicable.
+- Ask the user to confirm (from Anypoint Platform → API Manager) that deployed API instances have at minimum: Rate Limiting or SLA-based throttling, Client ID Enforcement or OAuth, and IP allowlist where applicable. Flag the gap if policies are missing.
 
 ## Logging Safety
 - Flag any Logger components that log `payload`, `attributes`, or variables containing passwords, tokens, or PII fields without masking.

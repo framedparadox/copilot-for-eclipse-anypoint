@@ -9,11 +9,10 @@ tools:
   - munit_improvement_suggestions
   - get_mule_project_errors
   - run_mule_maven_tests
-  - mulesoft/generate_or_modify_munit_test
 ---
 # Generate MUnit Tests
 
-Run `mule_project_scan` to identify flows and existing MUnit suites. Run `munit_validate_flow_tests` on existing suites first to understand current coverage gaps. Then use `mulesoft/generate_or_modify_munit_test` to create or update tests.
+Run `mule_project_scan` to identify flows and existing MUnit suites. Run `munit_validate_flow_tests` on existing suites first to understand current coverage gaps, then run `munit_improvement_suggestions` to drive the new or updated tests you write.
 
 ## Required Coverage for Every Flow
 - **Happy path**: Valid input, all connectors succeed, expected payload/variable in response.

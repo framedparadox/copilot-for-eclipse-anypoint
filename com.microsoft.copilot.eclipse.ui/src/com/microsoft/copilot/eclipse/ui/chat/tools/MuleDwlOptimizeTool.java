@@ -66,7 +66,7 @@ public class MuleDwlOptimizeTool extends BaseTool {
         Returns a structured findings report and the suggested optimized script.
         When applyFixes=true, writes the improved script back to the file (requires confirmation).
         When includeComments=true (default), adds documentation comments to undocumented functions.
-        Always run mulesoft/dataweave_run_script_tool after applying to validate the result.
+        Recommend running the project's MUnit tests (via run_mule_maven_tests) after applying to validate the result.
         """);
     toolInfo.setInputSchema(MuleToolInputs.dwlOptimizeSchema());
     return toolInfo;

@@ -16,40 +16,10 @@ tools:
   - summarize_mule_project
   - get_mule_project_errors
   - run_mule_maven_tests
-  - mulesoft/create_mule_project
-  - mulesoft/generate_mule_flow
-  - mulesoft/run_local_mule_application
-  - mulesoft/create_api_spec_project
-  - mulesoft/generate_api_spec
-  - mulesoft/implement_api_spec
-  - mulesoft/mock_api_spec
-  - mulesoft/search_asset
-  - mulesoft/dataweave_run_script_tool
-  - mulesoft/dataweave_create_sample_data
-  - mulesoft/dataweave_get_project_metadata
-  - mulesoft/dataweave_get_module_metadata
-  - mulesoft/dataweave_create_documentation
-  - mulesoft/generate_or_modify_munit_test
-  - mulesoft/deploy_mule_application
-  - mulesoft/update_mule_application
-  - mulesoft/list_applications
-  - mulesoft/create_and_manage_api_instances
-  - mulesoft/list_api_instances
-  - mulesoft/manage_api_instance_policy
-  - mulesoft/create_and_manage_assets
-  - mulesoft/get_reuse_metrics
-  - mulesoft/get_flex_gateway_policy_example
-  - mulesoft/manage_flex_gateway_policy_project
-  - mulesoft/create_install_runtime_fabric
-  - mulesoft/upgrade_runtime_fabric
-  - mulesoft/delete_runtime_fabric
-  - mulesoft/create_and_run_task
-  - mulesoft/get_platform_insights
 ---
 
-Use this agent for MuleSoft and Anypoint Studio work. Prefer MuleSoft MCP tools for API specs, Mule flow generation,
-DataWeave, Exchange assets, governance, deployment, policy, monitoring, and agent-network tasks. Use local Studio tools
-to inspect Mule XML, understand project structure, read problem markers, and run Maven or MUnit validation.
+Use this agent for MuleSoft and Anypoint Studio work. Use the local Studio tools to inspect Mule XML, understand project
+structure, read problem markers, and run Maven or MUnit validation.
 
 Always run `mule_project_scan` before editing flows or making claims about project structure. Treat Mule XML as
 executable integration configuration — namespace-aware, connector-version-sensitive, and environment-parameterized.
@@ -78,7 +48,6 @@ When generating flows: identify which layer the request belongs to, confirm the 
 - Use `mule_read_dwl_file` to read `.dwl` module files in `src/main/resources/dwl/` before editing or reviewing them.
 - Run `mule_optimize_dwl` before rewriting a DWL module to surface performance issues (nested maps, inline regex, round-trip serialization), null-safety gaps, and missing output declarations.
 - Use `mule_write_dwl_file` to update a `.dwl` module after confirming the optimized script with the user.
-- Always run `mulesoft/dataweave_run_script_tool` after writing to validate the updated script against representative sample data.
 
 ## DataWeave Best Practices
 - Always run `mule_read_transform` before modifying any Transform Message component to understand the current script and output type.
@@ -107,4 +76,4 @@ When generating flows: identify which layer the request belongs to, confirm the 
 - Use `munit:mock-when` on all external connector calls by `doc:name`. Do not mock sub-flow calls.
 - Each `<choice>` router branch requires its own test, including the otherwise branch.
 - Run `munit_validate_flow_tests` after generating tests to confirm namespace, config, execution, assertion, and coverage completeness.
-- Use `mulesoft/generate_or_modify_munit_test` to create or update MUnit suites with full scenario coverage.
+- Use `munit_full_review` and `munit_improvement_suggestions` to broaden coverage, then run `run_mule_maven_tests` to validate.

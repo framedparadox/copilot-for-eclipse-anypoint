@@ -7,7 +7,7 @@ GitHub Copilot for Eclipse brings AI-assisted coding to the Eclipse IDE with the
 - **Agent Mode** for conversational help and more autonomous, project-aware assistance.
 - **Model Context Protocol (MCP)** integration to connect Copilot with external tools and services.
 - **Advanced Agentic Capabilities** include Custom Agents, Isolated Subagents, and Plan Agent, with more agentic capabilities coming soon.
-- **Anypoint Studio Integration** connects Copilot with the official MuleSoft MCP server for AI-assisted Mule application development directly in Anypoint Studio.
+- **Anypoint Studio Integration** ships AI-assisted Mule 4 development tooling (project analyzer, DataWeave, Transform, MUnit, Maven) directly in Anypoint Studio.
 
 ## Usage-based billing support
 
@@ -87,7 +87,7 @@ For other available features in Eclipse, see the [Copilot feature matrix](https:
 
 ## Anypoint Studio Integration
 
-This plugin includes a dedicated integration for [MuleSoft Anypoint Studio](https://www.mulesoft.com/platform/studio), enabling AI-assisted Mule 4 application development through Copilot's Agent Mode and MCP.
+This plugin includes a dedicated integration for [MuleSoft Anypoint Studio](https://www.mulesoft.com/platform/studio), enabling AI-assisted Mule 4 application development through Copilot's Agent Mode using in-process Java tools (no Node.js or npm required).
 
 ### Slash Commands for MuleSoft Workflows
 
@@ -136,29 +136,6 @@ The `mule_project_scan` tool (invoked automatically by most slash commands) retu
 - `reconnect-forever` and `until-successful` without `maxRetries` detection
 - `hasBatchJob`, `hasApikit`, `hasSecureProperties` presence flags
 
-### MuleSoft MCP Server
-
-The plugin can automatically register the official [`mulesoft-mcp-server`](https://www.npmjs.com/package/mulesoft-mcp-server) as an MCP server in Copilot Agent Mode. This unlocks MuleSoft-native tools such as:
-
-- Creating and validating Mule projects
-- Generating and implementing API specs (RAML/OAS)
-- Running DataWeave scripts and generating sample data
-- Creating, running, and reviewing MUnit tests
-- Searching Anypoint Exchange assets
-- Deploying to CloudHub, Runtime Fabric, and Flex Gateway
-
-### Configuring MuleSoft MCP
-
-1. In Anypoint Studio, open **Window → Preferences → Copilot → MuleSoft MCP**.
-2. Check **Enable MuleSoft MCP Server registration**.
-3. Enter your **Anypoint Platform Connected App** credentials:
-   - **Client ID** – the connected app client ID.
-   - **Client Secret** – stored securely in Eclipse secure storage.
-   - **Region** *(optional)* – select from the dropdown: `PROD_US`, `PROD_EU`, `PROD_CA`, or `PROD_JP`. Defaults to `PROD_US` when left blank.
-4. Click **Apply and Close**, then approve the `mulesoft` server entry in **Preferences → Copilot → MCP Servers**.
-
-> **Tip:** If any field is left blank, the integration falls back to the `ANYPOINT_CLIENT_ID`, `ANYPOINT_CLIENT_SECRET`, and `ANYPOINT_REGION` environment variables set in the Studio process environment.
-
 ### Workspace-Level Custom Instructions
 
 For best results, add a `copilot-instructions.md` file to your Mule project at `.github/copilot-instructions.md`. This file is read automatically on every chat turn and tells Copilot about your project's runtime version, API-led layer, connector conventions, error handling strategy, and MUnit expectations.
@@ -171,18 +148,13 @@ Copy it to `.github/copilot-instructions.md` in your Mule project and fill in th
 
 ### MuleSoft Agent Template
 
-A pre-built agent template (`mulesoft-agent.agent.md`) is bundled with the plugin. It configures a specialized Copilot agent scoped to Mule 4 development, automatically wiring the relevant MuleSoft MCP tools alongside built-in tools. The agent enforces:
+A pre-built agent template (`mulesoft-agent.agent.md`) is bundled with the plugin. It configures a specialized Copilot agent scoped to Mule 4 development, wiring the in-process Mule Java tools. The agent enforces:
 
 - **API-led architecture** — Experience → Process → System call direction rules
 - **Error handling contract** — typed On Error Propagate handlers, correlation ID logging, consistent error response shape
 - **DataWeave standards** — output type declaration, null-safe access, streaming for large payloads
 - **Logging discipline** — structured JSON format, correlation IDs at INFO, no PII in logs
 - **Connector governance** — version compatibility, pooling config, no `reconnect-forever` in production
-
-### Prerequisites for MuleSoft MCP
-
-- [Node.js](https://nodejs.org/) (includes `npx`) must be available on the `PATH` used by the Anypoint Studio process.
-- A [MuleSoft Connected App](https://docs.mulesoft.com/access-management/connected-apps-overview) with the necessary scopes for the tools you intend to use.
 
 ---
 

@@ -21,7 +21,6 @@
       <import plugin="org.eclipse.mylyn.wikitext"/>
       <import plugin="org.eclipse.mylyn.wikitext.markdown"/>
       <import plugin="org.eclipse.mylyn.wikitext.ui"/>
-      <import plugin="org.eclipse.wildwebdeveloper.embedder.node" optional="true"/>
       <import plugin="org.eclipse.jdt.debug" optional="true"/>
    </requires>
 
