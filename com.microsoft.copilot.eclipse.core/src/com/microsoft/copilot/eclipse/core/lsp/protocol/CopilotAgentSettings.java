@@ -3,6 +3,7 @@
 
 package com.microsoft.copilot.eclipse.core.lsp.protocol;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -18,6 +19,9 @@ public class CopilotAgentSettings {
   private int agentMaxRequests;
   private boolean enableSkills;
   private boolean autoCompress;
+  
+  @SerializedName("toolConfirmAutoApprove")
+  private List<McpAutoApproveSetting> toolConfirmAutoApprove = List.of();
 
   private String transcriptDirectory;
 
@@ -32,6 +36,12 @@ public class CopilotAgentSettings {
   private boolean editorHandlesAllConfirmation = true;
 
   private ToolsSettings tools;
+
+  /**
+   * Setting shape expected by the Copilot language server for MCP tool auto-approval configuration.
+   */
+  public record McpAutoApproveSetting(String serverName, boolean isServerAllowed, List<String> allowedTools) {
+  }
 
   /** Nested tools settings matching CLS agent.tools structure. */
   public static class ToolsSettings {
@@ -191,6 +201,14 @@ public class CopilotAgentSettings {
     this.transcriptDirectory = transcriptDirectory;
   }
 
+  public List<McpAutoApproveSetting> getToolConfirmAutoApprove() {
+    return toolConfirmAutoApprove;
+  }
+
+  public void setToolConfirmAutoApprove(List<McpAutoApproveSetting> toolConfirmAutoApprove) {
+    this.toolConfirmAutoApprove = toolConfirmAutoApprove == null ? List.of() : List.copyOf(toolConfirmAutoApprove);
+  }
+
   public boolean isEditorHandlesAllConfirmation() {
     return editorHandlesAllConfirmation;
   }
@@ -221,7 +239,7 @@ public class CopilotAgentSettings {
 
   @Override
   public int hashCode() {
-    return Objects.hash(agentMaxRequests, enableSkills, autoCompress, transcriptDirectory,
+    return Objects.hash(agentMaxRequests, enableSkills, autoCompress, toolConfirmAutoApprove, transcriptDirectory,
         editorHandlesAllConfirmation, autoApproveUnmatchedTerminal, autoApproveUnmatchedFileOp, tools);
   }
 
@@ -239,6 +257,7 @@ public class CopilotAgentSettings {
     CopilotAgentSettings other = (CopilotAgentSettings) obj;
     return agentMaxRequests == other.agentMaxRequests && enableSkills == other.enableSkills
         && autoCompress == other.autoCompress
+		&& Objects.equals(toolConfirmAutoApprove, other.toolConfirmAutoApprove)
         && Objects.equals(transcriptDirectory, other.transcriptDirectory)
         && editorHandlesAllConfirmation == other.editorHandlesAllConfirmation
         && autoApproveUnmatchedTerminal == other.autoApproveUnmatchedTerminal
@@ -252,6 +271,7 @@ public class CopilotAgentSettings {
     builder.append("agentMaxRequests", agentMaxRequests);
     builder.append("enableSkills", enableSkills);
     builder.append("autoCompress", autoCompress);
+    builder.append("toolConfirmAutoApprove", toolConfirmAutoApprove);
     builder.append("transcriptDirectory", transcriptDirectory);
     builder.append("editorHandlesAllConfirmation", editorHandlesAllConfirmation);
     builder.append("autoApproveUnmatchedTerminal", autoApproveUnmatchedTerminal);
