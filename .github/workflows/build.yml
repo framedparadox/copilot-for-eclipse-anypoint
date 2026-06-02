@@ -1,0 +1,267 @@
+name: Build GitHub Copilot for Anypoint Studio
+
+on:
+  push:
+    tags:
+      - 'win/v*'
+      - 'win-mac/v*'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: Package set to build
+        required: true
+        default: win-mac
+        type: choice
+        options:
+          - win
+          - win-mac
+      release:
+        description: Create a GitHub release
+        required: true
+        default: false
+        type: boolean
+
+env:
+  MAVEN_OPTS: -Xmx2g
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve build settings
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION=$(grep -oP '(?<=<copilot-plugin-version>)[^<]+' pom.xml)
+          TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+          DEFAULT_DISPLAY_VERSION="${VERSION/-SNAPSHOT/-$TIMESTAMP}"
+          RELEASE_TAG=""
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+            RELEASE_TAG="$TAG"
+            case "$TAG" in
+              win/v*) BUILD_TYPE="win" ;;
+              win-mac/v*) BUILD_TYPE="win-mac" ;;
+              universal/v*) BUILD_TYPE="universal" ;;
+              win-mac-universal/v*) BUILD_TYPE="win-mac-universal" ;;
+              *)
+                echo "Unsupported build tag: $TAG"
+                echo "Supported tag formats:"
+                echo "  win/v<version>"
+                echo "  win-mac/v<version>"
+                echo "  universal/v<version>"
+                echo "  win-mac-universal/v<version>"
+                exit 1
+                ;;
+            esac
+
+            TAG_VERSION="${TAG##*/}"
+            DISPLAY_VERSION="${TAG_VERSION#v}"
+            if [[ -z "$DISPLAY_VERSION" || "$TAG_VERSION" == "$DISPLAY_VERSION" ]]; then
+              echo "Build tag must end with v<version>: $TAG"
+              exit 1
+            fi
+          else
+            BUILD_TYPE="${{ github.event.inputs.build_type || 'win-mac-universal' }}"
+            DISPLAY_VERSION="$DEFAULT_DISPLAY_VERSION"
+            RELEASE_TAG="v${DISPLAY_VERSION}"
+          fi
+
+          case "$BUILD_TYPE" in
+            win)
+              BUILD_LABEL="Windows"
+              RELEASE_NAME_SUFFIX=" - Windows"
+              BUILD_UNIVERSAL=false
+              BUILD_WIN=true
+              BUILD_MAC=false
+              ;;
+            win-mac)
+              BUILD_LABEL="Windows and macOS"
+              RELEASE_NAME_SUFFIX=" - Windows & macOS"
+              BUILD_UNIVERSAL=false
+              BUILD_WIN=true
+              BUILD_MAC=true
+              ;;
+            universal)
+              BUILD_LABEL="Universal"
+              RELEASE_NAME_SUFFIX=" - Universal"
+              BUILD_UNIVERSAL=true
+              BUILD_WIN=false
+              BUILD_MAC=false
+              ;;
+            win-mac-universal)
+              BUILD_LABEL="Windows, macOS and Universal"
+              RELEASE_NAME_SUFFIX=""
+              BUILD_UNIVERSAL=true
+              BUILD_WIN=true
+              BUILD_MAC=true
+              ;;
+            *)
+              echo "Unsupported build type: $BUILD_TYPE"
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "COPILOT_PLUGIN_VERSION=$VERSION"
+            echo "COPILOT_DISPLAY_VERSION=$DISPLAY_VERSION"
+            echo "COPILOT_BUILD_TYPE=$BUILD_TYPE"
+            echo "COPILOT_BUILD_LABEL=$BUILD_LABEL"
+            echo "COPILOT_BUILD_UNIVERSAL=$BUILD_UNIVERSAL"
+            echo "COPILOT_BUILD_WIN=$BUILD_WIN"
+            echo "COPILOT_BUILD_MAC=$BUILD_MAC"
+            echo "RELEASE_TAG=$RELEASE_TAG"
+            echo "RELEASE_NAME=GitHub Copilot for Anypoint Studio${RELEASE_NAME_SUFFIX} v${DISPLAY_VERSION}"
+          } >> "$GITHUB_ENV"
+
+          echo "Resolved $BUILD_LABEL build for version $DISPLAY_VERSION"
+
+      - name: Set up Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Cache Maven local repo
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Copilot agent
+        working-directory: com.microsoft.copilot.eclipse.core/copilot-agent
+        run: |
+          npm install --force
+          cp -r node_modules/@github/copilot-language-server/dist ./dist
+
+      - name: Make mvnw executable
+        run: chmod +x ./mvnw
+
+      - name: Build (Tycho/Maven)
+        run: |
+          ./mvnw -DskipTests -Dcheckstyle.skip=true clean verify
+
+      - name: Prepare build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'rm -rf temp_win temp_mac' EXIT
+
+          mkdir -p build
+          SRC=com.microsoft.copilot.eclipse.repository/target/com.microsoft.copilot.eclipse.repository-${COPILOT_PLUGIN_VERSION}.zip
+          if [[ ! -f "$SRC" ]]; then
+            echo "ERROR: Expected ZIP not found at $SRC"
+            ls -la com.microsoft.copilot.eclipse.repository/target || true
+            exit 1
+          fi
+          if ! unzip -l "$SRC" | grep -qE 'content\.(jar|xml|xml\.xz)|p2\.index'; then
+            echo "ERROR: p2 repository ZIP is missing p2 metadata (content.jar / content.xml.xz / p2.index)"
+            unzip -l "$SRC"
+            exit 1
+          fi
+
+          find build/ -maxdepth 1 -name "github-copilot-for-anypoint-*.zip" -delete 2>/dev/null || true
+          find build/ -maxdepth 1 -name "github-copilot-for-anypoint-*.zip.sha256" -delete 2>/dev/null || true
+
+          write_sha256() {
+            sha256sum "$1" | awk '{print $1 "  " $2}' > "${1}.sha256"
+          }
+
+          if [[ "${COPILOT_BUILD_UNIVERSAL}" == "true" ]]; then
+            OUT_UNIVERSAL=build/github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}.zip
+            cp -f "$SRC" "$OUT_UNIVERSAL"
+            write_sha256 "$OUT_UNIVERSAL"
+          fi
+
+          if [[ "${COPILOT_BUILD_WIN}" == "true" ]]; then
+            OUT_WIN=build/github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-win32.zip
+            rm -rf temp_win
+            unzip -q "$SRC" -d temp_win
+            rm -rf temp_win/plugins/*linux* temp_win/plugins/*macosx* temp_win/features/*linux* temp_win/features/*macosx* 2>/dev/null || true
+            (cd temp_win && zip -q -r "../${OUT_WIN}" .)
+            write_sha256 "$OUT_WIN"
+          fi
+
+          if [[ "${COPILOT_BUILD_MAC}" == "true" ]]; then
+            OUT_MAC=build/github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-macos.zip
+            rm -rf temp_mac
+            unzip -q "$SRC" -d temp_mac
+            rm -rf temp_mac/plugins/*linux* temp_mac/plugins/*win32* temp_mac/features/*linux* temp_mac/features/*win32* 2>/dev/null || true
+            (cd temp_mac && zip -q -r "../${OUT_MAC}" .)
+            write_sha256 "$OUT_MAC"
+          fi
+
+          ls -la build
+
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          {
+            echo "Pre-release build of GitHub Copilot for Anypoint Studio."
+            echo
+            echo "**Build:** ${COPILOT_BUILD_LABEL}"
+            echo
+            echo "**Installation in Anypoint Studio:**"
+            echo
+            echo "Select the package appropriate for your platform:"
+            echo
+            if [[ "${COPILOT_BUILD_WIN}" == "true" ]]; then
+              echo "- **Windows (64-bit)**: Download \`github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-win32.zip\`"
+            fi
+            if [[ "${COPILOT_BUILD_MAC}" == "true" ]]; then
+              echo "- **macOS (Intel & Apple Silicon)**: Download \`github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-macos.zip\`"
+            fi
+            if [[ "${COPILOT_BUILD_UNIVERSAL}" == "true" ]]; then
+              echo "- **All Platforms**: Download \`github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}.zip\` (universal p2 repository with all platform support)"
+            fi
+            echo
+            echo "**Installation Steps:**"
+            echo "1. In Anypoint Studio, go to **Help -> Install New Software...**"
+            echo "2. Click **Add...** and select the downloaded ZIP file as a local update site."
+            echo "3. Follow the installation wizard and restart Anypoint Studio."
+            echo
+            echo "**Verification:**"
+            echo "Each package includes a \`.sha256\` file for integrity verification. Use \`sha256sum -c file.zip.sha256\` to verify the download."
+          } > build/release-body.md
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-copilot-for-anypoint-${{ env.COPILOT_DISPLAY_VERSION }}-${{ env.COPILOT_BUILD_TYPE }}
+          path: |
+            build/*.zip
+            build/*.zip.sha256
+
+      - name: Create GitHub Release
+        if: ${{ github.ref_type == 'tag' || github.event.inputs.release == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ env.RELEASE_NAME }}
+          prerelease: true
+          generate_release_notes: true
+          body_path: build/release-body.md
+          files: |
+            build/*.zip
+            build/*.zip.sha256
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

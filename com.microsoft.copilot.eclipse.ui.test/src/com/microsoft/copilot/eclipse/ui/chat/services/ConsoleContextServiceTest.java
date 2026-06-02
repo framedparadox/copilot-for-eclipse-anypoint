@@ -1,4 +1,3 @@
-// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
 package com.microsoft.copilot.eclipse.ui.chat.services;
