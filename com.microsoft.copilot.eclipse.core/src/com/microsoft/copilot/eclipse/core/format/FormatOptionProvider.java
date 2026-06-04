@@ -33,6 +33,7 @@ public class FormatOptionProvider {
   private static final String SPACES_FOR_TABS_KEY = "spacesForTabs";
   private static final boolean DEFAULT_USE_SPACE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_CHAR.equals("space");
   private static final int DEFAULT_TAB_SIZE = LanguageFormatReader.PREFERENCE_DEFAULT_TAB_SIZE;
+  private static final String DATAWEAVE_LANGUAGE_ID = "dataweave";
 
   /**
    * Creates a new FormatOptionProvider.
@@ -51,6 +52,7 @@ public class FormatOptionProvider {
     for (String extension : CPP_LANGUAGE_EXTENSIONS) {
       languageExtensionToIdMap.put(extension, CPP_LANGUAGE_ID);
     }
+    languageExtensionToIdMap.put("dwl", DATAWEAVE_LANGUAGE_ID);
   }
 
   /**

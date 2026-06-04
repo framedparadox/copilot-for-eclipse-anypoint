@@ -34,6 +34,8 @@ class FormatOptionProviderTests {
   private static final String TAB_WIDTH_KEY = "tabWidth";
   private static final String SPACES_FOR_TABS_KEY = "spacesForTabs";
 
+  private static final int PREFERENCE_DEFAULT_TAB_SIZE = 4;
+
   @BeforeEach
   void setUp() {
     formatOptionProvider = new FormatOptionProvider();
@@ -74,5 +76,31 @@ class FormatOptionProviderTests {
     IEclipsePreferences prefs = InstanceScope.INSTANCE.getNode(EDITOR_PREF_NODE);
     prefs.putBoolean(SPACES_FOR_TABS_KEY, useSpaces);
     prefs.putInt(TAB_WIDTH_KEY, tabSize);
+  }
+  
+
+
+  @Test
+  void testGetCopilotDefaultTabCharAndSizeForUnknownLanguage() {
+    when(mockFile.getFileExtension()).thenReturn("js");
+
+    assertTrue(formatOptionProvider.useSpace(mockFile));
+    assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
+  }
+
+  @Test
+  void testGetCopilotDefaultTabCharAndSizeForDataWeave() {
+    when(mockFile.getFileExtension()).thenReturn("dwl");
+
+    assertTrue(formatOptionProvider.useSpace(mockFile));
+    assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
+  }
+
+  @Test
+  void testGetCopilotDefaultTabCharAndSizeForNoExtensionFile() {
+    when(mockFile.getFileExtension()).thenReturn(null);
+
+    assertTrue(formatOptionProvider.useSpace(mockFile));
+    assertEquals(PREFERENCE_DEFAULT_TAB_SIZE, formatOptionProvider.getTabSize(mockFile));
   }
 }
