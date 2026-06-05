@@ -23,6 +23,7 @@ on:
 
 env:
   MAVEN_OPTS: -Xmx2g
+  RELEASE_BRANCH: anypoint-studio/main
 
 jobs:
   build:
@@ -32,6 +33,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release branch
+        if: ${{ github.ref_type == 'tag' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --no-tags origin "${RELEASE_BRANCH}"
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" "origin/${RELEASE_BRANCH}"; then
+            echo "Tag ${GITHUB_REF_NAME} does not point to a commit on ${RELEASE_BRANCH}."
+            exit 1
+          fi
 
       - name: Resolve build settings
         shell: bash
@@ -49,15 +64,11 @@ jobs:
             case "$TAG" in
               win/v*) BUILD_TYPE="win" ;;
               win-mac/v*) BUILD_TYPE="win-mac" ;;
-              universal/v*) BUILD_TYPE="universal" ;;
-              win-mac-universal/v*) BUILD_TYPE="win-mac-universal" ;;
               *)
                 echo "Unsupported build tag: $TAG"
                 echo "Supported tag formats:"
                 echo "  win/v<version>"
                 echo "  win-mac/v<version>"
-                echo "  universal/v<version>"
-                echo "  win-mac-universal/v<version>"
                 exit 1
                 ;;
             esac
@@ -69,7 +80,7 @@ jobs:
               exit 1
             fi
           else
-            BUILD_TYPE="${{ github.event.inputs.build_type || 'win-mac-universal' }}"
+            BUILD_TYPE="${{ github.event.inputs.build_type || 'win-mac' }}"
             DISPLAY_VERSION="$DEFAULT_DISPLAY_VERSION"
             RELEASE_TAG="v${DISPLAY_VERSION}"
           fi
@@ -78,28 +89,12 @@ jobs:
             win)
               BUILD_LABEL="Windows"
               RELEASE_NAME_SUFFIX=" - Windows"
-              BUILD_UNIVERSAL=false
               BUILD_WIN=true
               BUILD_MAC=false
               ;;
             win-mac)
               BUILD_LABEL="Windows and macOS"
               RELEASE_NAME_SUFFIX=" - Windows & macOS"
-              BUILD_UNIVERSAL=false
-              BUILD_WIN=true
-              BUILD_MAC=true
-              ;;
-            universal)
-              BUILD_LABEL="Universal"
-              RELEASE_NAME_SUFFIX=" - Universal"
-              BUILD_UNIVERSAL=true
-              BUILD_WIN=false
-              BUILD_MAC=false
-              ;;
-            win-mac-universal)
-              BUILD_LABEL="Windows, macOS and Universal"
-              RELEASE_NAME_SUFFIX=""
-              BUILD_UNIVERSAL=true
               BUILD_WIN=true
               BUILD_MAC=true
               ;;
@@ -114,7 +109,6 @@ jobs:
             echo "COPILOT_DISPLAY_VERSION=$DISPLAY_VERSION"
             echo "COPILOT_BUILD_TYPE=$BUILD_TYPE"
             echo "COPILOT_BUILD_LABEL=$BUILD_LABEL"
-            echo "COPILOT_BUILD_UNIVERSAL=$BUILD_UNIVERSAL"
             echo "COPILOT_BUILD_WIN=$BUILD_WIN"
             echo "COPILOT_BUILD_MAC=$BUILD_MAC"
             echo "RELEASE_TAG=$RELEASE_TAG"
@@ -182,12 +176,6 @@ jobs:
             sha256sum "$1" | awk '{print $1 "  " $2}' > "${1}.sha256"
           }
 
-          if [[ "${COPILOT_BUILD_UNIVERSAL}" == "true" ]]; then
-            OUT_UNIVERSAL=build/github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}.zip
-            cp -f "$SRC" "$OUT_UNIVERSAL"
-            write_sha256 "$OUT_UNIVERSAL"
-          fi
-
           if [[ "${COPILOT_BUILD_WIN}" == "true" ]]; then
             OUT_WIN=build/github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-win32.zip
             rm -rf temp_win
@@ -218,27 +206,12 @@ jobs:
             echo
             echo "**Build:** ${COPILOT_BUILD_LABEL}"
             echo
-            echo "**Installation in Anypoint Studio:**"
-            echo
-            echo "Select the package appropriate for your platform:"
-            echo
             if [[ "${COPILOT_BUILD_WIN}" == "true" ]]; then
-              echo "- **Windows (64-bit)**: Download \`github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-win32.zip\`"
+              echo "- \`github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-win32.zip\`"
             fi
             if [[ "${COPILOT_BUILD_MAC}" == "true" ]]; then
-              echo "- **macOS (Intel & Apple Silicon)**: Download \`github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-macos.zip\`"
+              echo "- \`github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}-macos.zip\`"
             fi
-            if [[ "${COPILOT_BUILD_UNIVERSAL}" == "true" ]]; then
-              echo "- **All Platforms**: Download \`github-copilot-for-anypoint-${COPILOT_DISPLAY_VERSION}.zip\` (universal p2 repository with all platform support)"
-            fi
-            echo
-            echo "**Installation Steps:**"
-            echo "1. In Anypoint Studio, go to **Help -> Install New Software...**"
-            echo "2. Click **Add...** and select the downloaded ZIP file as a local update site."
-            echo "3. Follow the installation wizard and restart Anypoint Studio."
-            echo
-            echo "**Verification:**"
-            echo "Each package includes a \`.sha256\` file for integrity verification. Use \`sha256sum -c file.zip.sha256\` to verify the download."
           } > build/release-body.md
 
       - name: Upload build artifacts
