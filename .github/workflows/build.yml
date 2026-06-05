@@ -2,6 +2,8 @@ name: Build GitHub Copilot for Anypoint Studio
 
 on:
   push:
+    branches:
+      - 'anypoint-studio/vanilla'
     tags:
       - 'win/v*'
       - 'win-mac/v*'
