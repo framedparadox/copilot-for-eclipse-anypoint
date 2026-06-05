@@ -97,7 +97,7 @@ jobs:
             echo "COPILOT_BUILD_WIN=$BUILD_WIN"
             echo "COPILOT_BUILD_MAC=$BUILD_MAC"
             echo "RELEASE_TAG=$RELEASE_TAG"
-            echo "RELEASE_NAME=GitHub Copilot for Anypoint Studio${RELEASE_PLATFORM_NAME} v${DISPLAY_VERSION}"
+            echo "RELEASE_NAME=GitHub Copilot for Anypoint Studio - Vanilla - ${RELEASE_PLATFORM_NAME} v${DISPLAY_VERSION}"
           } >> "$GITHUB_ENV"
 
           echo "Resolved $BUILD_LABEL build for version $DISPLAY_VERSION"
