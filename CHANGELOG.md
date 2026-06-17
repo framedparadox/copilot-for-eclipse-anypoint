@@ -5,58 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased — MuleSoft Anypoint Studio Enhancements
-
+## 0.19.0
 ### Added
+- Improve terminal command execution across Windows and Linux. [PR#247](https://github.com/microsoft/copilot-for-eclipse/pull/247)
+- Support editing/creating local files outside the workspace. [PR#248](https://github.com/microsoft/copilot-for-eclipse/pull/248)
+- Support automatic chat context compression. [PR#250](https://github.com/microsoft/copilot-for-eclipse/pull/250)
+- Support tool auto-approve controls. [PR#255](https://github.com/microsoft/copilot-for-eclipse/pull/255)
 
-**13 new slash commands** for MuleSoft-specific workflows (available in Copilot Agent Mode):
+### Fixed
+- Copilot reports failure when extension-point contributed MCP server has changed. [#153](https://github.com/microsoft/copilot-for-eclipse/issues/153)
+- Subagent panel size is not updated if conversation is canceled. [#169](https://github.com/microsoft/copilot-for-eclipse/issues/169), contributed by [@rsd-darshan](https://github.com/rsd-darshan)
+- Thinking effort descriptions are truncated in the model picker hover card. [#233](https://github.com/microsoft/copilot-for-eclipse/issues/233)
+- Canceled terminal tool calling status will become ongoing again after chat history restoration. [#239](https://github.com/microsoft/copilot-for-eclipse/issues/239)
+- Cannot navigate to the file out of workspace. [#262](https://github.com/microsoft/copilot-for-eclipse/issues/262)
+- Read the default text editor preferences from platform instead of defaulting to spaces. [PR#267](https://github.com/microsoft/copilot-for-eclipse/pull/267), contributed by [@jomillerOpen](https://github.com/jomillerOpen)
 
-| Command | Purpose |
-|---|---|
-| `/mule-code-review` | Flow naming, error handlers, global configs, APIkit route coverage, DataWeave |
-| `/mule-security-review` | Hardcoded secrets, XXE, SQL injection, XPath injection, TLS, policy gaps |
-| `/mule-performance-review` | DataWeave streaming, batch sizing, connector pooling, N+1 queries, caching |
-| `/deployment-readiness` | CloudHub/RTF/on-prem checklist, health endpoints, log levels, smoke tests |
-| `/api-spec-review` | RAML/OpenAPI governance, APIkit binding, error contracts, security schemes |
-| `/generate-munit-tests` | Happy/negative/error path, async, batch, scatter-gather, transactional tests |
-| `/dataweave-best-practices` | Null safety, streaming, map/filter/reduce patterns, module reuse |
-| `/connector-governance` | Version compatibility, deprecated connectors, pooling, retry strategies |
-| `/logging-observability` | Correlation IDs, structured logging, log levels, Anypoint Monitoring |
-| `/error-handling-contract` | On Error Propagate/Continue rules, typed matchers, error response shape |
-| `/api-led-architecture-review` | Experience/Process/System layer audit, call direction enforcement |
-| `/batch-job-review` | maxRecordsPerBlock sizing, aggregator, step error handling, On Complete |
-| `/async-flow-review` | Scheduler flows, VM/MQ patterns, async scope, graceful shutdown |
+### Engineering
+- Remove unused message keys and properties across various modules. [PR#208](https://github.com/microsoft/copilot-for-eclipse/pull/208)
+- Add endgame skill. [PR#230](https://github.com/microsoft/copilot-for-eclipse/pull/230)
+- Fix typo in README upgrade recommendation. [PR#251](https://github.com/microsoft/copilot-for-eclipse/pull/251), contributed by [@evanclan](https://github.com/evanclan)
 
-**Smarter `@console` for Mule errors** — when Anypoint Studio console output contains a `MuleRuntimeException`, a structured `[Mule Error Summary]` block (error type, flow name, root cause, component) is prepended before the raw output. This reduces context noise and lets the AI orient to the error immediately.
-
-**Richer `mule_project_scan` output** — the scan tool now returns 10 additional fields: `hasApikit`, `hasSecureProperties`, `hasBatchJob`, `schedulerFlows`, `hasReconnectForever`, `log4j2RootLevel`, `hasDbPoolConfig`, `hasHttpRequestTimeout`, `flowsWithCorrelationId`, `flowErrorHandlerTypes` (typed/catch-all/none per flow).
-
-**New automatic diagnostics from scan** — the project scanner now auto-flags: `reconnect-forever` in production connector config, `until-successful` without `maxRetries`, root log level set to DEBUG/TRACE, missing DB connection pool config, and missing HTTP request timeout.
-
-**`mule_project_scan` detects per-flow error handler quality** — each flow is classified as `typed` (all error handlers have type matchers), `catch-all` (at least one handler has no type), or `none` (no error handler). Directly guides the `/error-handling-contract` review.
-
-**Correlation ID detection per flow** — scan now reports which flows contain a `set-variable variableName="correlationId"` or reference `X-Correlation-ID` in a DataWeave expression.
-
-**log4j2.xml root level scanning** — scan reads `src/main/resources/log4j2.xml` and flags DEBUG/TRACE root level before deployment.
-
-**Maven profile support in `run_mule_maven_tests`** — new optional `mavenProfile` input activates a Maven profile with `-P`, e.g., `dev` or `test`. Tool description now documents MUnit-specific flags (`-Dmunit.test=<suite>.xml`) and multi-module project support (`-pl <module>`).
-
-**`layer` and `targetEnvironment` inputs** — code review, security review, and MUnit suggestion tools now accept an API-led layer (`experience`, `process`, `system`) and deployment target (`cloudhub`, `cloudhub2`, `rtf`, `standalone`) to tailor findings.
-
-**MuleSoft `copilot-instructions.md` scaffold template** — a ready-to-use template at `com.microsoft.copilot.eclipse.anypoint/templates/copilot-instructions-mule-template.md` documents Mule runtime version, API-led layer, connector conventions, error handling, logging, and MUnit expectations for workspace-level custom instructions.
-
-**Deepened agent definitions** — `mulesoft-agent.agent.md` and `mulesoft-engineer.agent.md` expanded from ~65 to ~110 lines with concrete rules for API-led architecture (Experience/Process/System hierarchy), error handling contract, DataWeave standards, logging discipline, connector governance, and security non-negotiables.
-
-**Enriched tool descriptions** — six tool `description` fields updated with Mulesoft-specific patterns, common findings, and when/how to invoke each tool: `mule_project_scan`, `mule_code_review`, `mule_security_review`, `api_schema_analyze`, `munit_validate_flow_tests`, `munit_full_review`.
-
-### Changed
-
-- `CONSOLE_CONTEXT_ENABLED` default changed from `false` to `true` — Anypoint Studio developers rely on the console for runtime error context; enabling by default eliminates a manual preference step.
-- `WORKSPACE_CONTEXT_ENABLED` default changed from `false` to `true` — multi-project Mule workspaces frequently reference shared RAML specs and DataWeave modules across projects; workspace context is essential for correct cross-project reasoning.
-- MuleSoft MCP preference page **Region** field changed from free-text to a dropdown (`PROD_US`, `PROD_EU`, `PROD_CA`, `PROD_JP`) to prevent typos that cause silent MCP registration failures. A status guidance label is added below the field.
-- `summarize_mule_project` tool output now includes `hasApikit`, `hasSecureProperties`, `hasBatchJob`, `hasReconnectForever`, `log4j2RootLevel`, `hasDbPoolConfig`, `hasHttpRequestTimeout`, scheduler-triggered flows, flows with correlationId set, and a diagnostic count.
-
-## 0.17.1
+## 0.18.0
 ### Added
 - ℹ️ Prepare for the [upcoming usage-based billing](https://github.blog/news-insights/company-news/github-copilot-is-moving-to-usage-based-billing/). We strongly recommend upgrading to this version as soon as possible. [#203](https://github.com/microsoft/copilot-for-eclipse/issues/203)
 - Add Copilot preference for a chat's custom instructions loading. [#62](https://github.com/microsoft/copilot-for-eclipse/issues/62), contributed by [@travkin79](https://github.com/travkin79)
