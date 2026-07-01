@@ -315,7 +315,6 @@ public class ThinkingBlock extends Composite {
 
     body.requestLayout();
     updateScrollerDuringStreaming();
-    refreshEnclosingScroller();
   }
 
   /** Resize the scroller to fit content (up to max height) and auto-scroll to bottom if enabled. */
@@ -499,7 +498,7 @@ public class ThinkingBlock extends Composite {
     Composite p = getParent();
     while (p != null && !p.isDisposed()) {
       if (p instanceof ChatContentViewer) {
-        ((ChatContentViewer) p).refreshScrollerLayout();
+        ((ChatContentViewer) p).refreshLayoutFull();
         return;
       }
       p = p.getParent();
