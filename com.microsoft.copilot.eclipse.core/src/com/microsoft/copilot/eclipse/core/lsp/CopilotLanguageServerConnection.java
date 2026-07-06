@@ -46,10 +46,10 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationMode;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationModesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplatesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTurnParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotModel;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.CustomizationFileInfo;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidChangeCopilotWatchedFilesParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.DidShowInlineEditParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.GenerateThinkingTitleParams;
@@ -72,6 +72,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.TodoItem;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.Turn;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.WorkspaceFoldersParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
@@ -374,9 +375,49 @@ public class CopilotLanguageServerConnection {
    */
   public CompletableFuture<ConversationTemplate[]> listConversationTemplates(List<WorkspaceFolder> workspaceFolders) {
     Function<LanguageServer, CompletableFuture<ConversationTemplate[]>> fn = server -> {
-      return ((CopilotLanguageServer) server).listTemplates(new ConversationTemplatesParams(workspaceFolders));
+      return ((CopilotLanguageServer) server).listTemplates(new WorkspaceFoldersParams(workspaceFolders));
     };
     return this.languageServerWrapper.execute(fn);
+  }
+
+  /**
+   * List custom skill files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomSkills(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomSkills(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom prompt files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomPrompts(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomPrompts(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom instruction files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomInstructions(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomInstructions(new WorkspaceFoldersParams(workspaceFolders)));
+  }
+
+  /**
+   * List custom agent files, each carrying its on-disk {@code uri}.
+   *
+   * @param workspaceFolders the workspace folders to scan
+   */
+  public CompletableFuture<CustomizationFileInfo[]> listCustomAgents(List<WorkspaceFolder> workspaceFolders) {
+    return this.languageServerWrapper.execute(server ->
+        ((CopilotLanguageServer) server).listCustomAgents(new WorkspaceFoldersParams(workspaceFolders)));
   }
 
   /**
@@ -708,19 +749,15 @@ public class CopilotLanguageServerConnection {
   }
 
   /**
-   * Builds the {@link ModelInfo} payload to forward with chat requests. Returns {@code null} when no reasoning effort
-   * is available so we do not send redundant {@code id}/{@code providerName} fields ahead of the future migration
-   * away from the legacy {@code model}/{@code modelProviderName} fields. Today the language server only consumes
-   * {@code modelInfo.reasoningEffort}, so suppressing the payload when there is nothing meaningful to forward keeps
-   * the protocol surface minimal and avoids implicit behaviour changes if the server starts honouring id/providerName
-   * before the client migration lands.
+   * Builds the {@link ModelInfo} payload for chat requests. Always sends the concrete model id (which the server
+   * prefers over the legacy {@code model} family field), since the family is not unique across models. Returns
+   * {@code null} when no model id is available.
    */
   private static ModelInfo buildModelInfo(CopilotModel activeModel, String reasoningEffort) {
-    if (StringUtils.isBlank(reasoningEffort)) {
+    if (activeModel == null || StringUtils.isBlank(activeModel.getId())) {
       return null;
     }
-    String id = activeModel != null ? activeModel.getId() : null;
-    String providerName = activeModel != null ? activeModel.getProviderName() : null;
-    return new ModelInfo(id, providerName, reasoningEffort, null);
+    String effort = StringUtils.isBlank(reasoningEffort) ? null : reasoningEffort;
+    return new ModelInfo(activeModel.getId(), activeModel.getProviderName(), effort, null);
   }
 }
