@@ -30,7 +30,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotAuthStatusListener;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
-import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
+import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
@@ -47,10 +47,6 @@ import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 public class ChatCompletionService implements CopilotAuthStatusListener {
   public static final String AGENT_MARK = "@";
   public static final String TEMPLATE_MARK = "/";
-  public static final String CONSOLE_CONTEXT_COMMAND = "console";
-  public static final String CONSOLE_CONTEXT_DESCRIPTION = "Attach active console output";
-  public static final String TRANSFORM_CONTEXT_COMMAND = "transform";
-  public static final String TRANSFORM_CONTEXT_DESCRIPTION = "Attach active Transform Message editor context";
 
   private volatile List<ConversationTemplate> templates = List.of();
   private volatile List<ConversationAgent> agents = List.of();
@@ -81,7 +77,13 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     ResourcesPlugin.getWorkspace().addResourceChangeListener(skillFileListener, IResourceChangeEvent.POST_CHANGE);
     this.eventBroker = PlatformUI.getWorkbench().getService(IEventBroker.class);
     if (this.eventBroker != null) {
-      this.customPromptsChangedHandler = event -> fetchAsync();
+      // Templates only surface skills and prompts, so ignore instruction/agent changes.
+      this.customPromptsChangedHandler = event -> {
+        Object type = event.getProperty(IEventBroker.DATA);
+        if (type == CustomizationType.SKILL || type == CustomizationType.PROMPT) {
+          fetchAsync();
+        }
+      };
       this.eventBroker.subscribe(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES,
           customPromptsChangedHandler);
     }
@@ -193,25 +195,12 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
    * @return the start and end index of the broken slash command
    */
   public boolean isBrokenCommand(String text, int cursorPosition) {
-    return isBrokenCommand(text, cursorPosition, null);
-  }
-
-  /**
-   * Find a broken slash or agent command in the given text for the active mode.
-   *
-   * @param text the text
-   * @param cursorPosition the cursor position inside the first word
-   * @param activeModeNameOrId the active mode name or custom mode ID
-   * @return true when the command can be repaired by deleting one character
-   */
-  public boolean isBrokenCommand(String text, int cursorPosition, String activeModeNameOrId) {
-    Set<String> commands = getAllCommandsSnapshot(activeModeNameOrId);
-    if (commands == null) {
+    if (allCommands == null) {
       return false;
     }
     // Try to recover the text by adding a dot at the cursor position
     String recoveredText = text.substring(0, cursorPosition) + "." + text.substring(cursorPosition);
-    for (String command : commands) {
+    for (String command : allCommands) {
       if (matchesRecoveredCommand(recoveredText, command)) {
         return true;
       }
@@ -242,22 +231,10 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
    * @return the start and end index of the slash command
    */
   public boolean isCommand(String text) {
-    return isCommand(text, null);
-  }
-
-  /**
-   * Find a command in the given text for the active mode.
-   *
-   * @param text the text
-   * @param activeModeNameOrId the active mode name or custom mode ID
-   * @return true if the text is a known command
-   */
-  public boolean isCommand(String text, String activeModeNameOrId) {
-    Set<String> commands = getAllCommandsSnapshot(activeModeNameOrId);
-    if (commands == null) {
+    if (allCommands == null) {
       return false;
     }
-    return commands.contains(text);
+    return allCommands.contains(text);
   }
 
   public boolean isTempaltesReady() {
@@ -270,63 +247,6 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
 
   public ConversationAgent[] getAgents() {
     return agents.toArray(new ConversationAgent[0]);
-  }
-
-  /**
-   * Returns whether @console should be available for the given active mode.
-   *
-   * @param activeModeNameOrId the selected built-in display name or custom mode ID
-   * @return true if @console is enabled and supported
-   */
-  public boolean isConsoleContextCommandAvailable(String activeModeNameOrId) {
-    return PreferencesUtils.isConsoleContextEnabled() && isConsoleContextSupportedMode(activeModeNameOrId);
-  }
-
-  /**
-   * Console context is intentionally limited to built-in Ask, Agent, and Plan modes.
-   *
-   * @param activeModeNameOrId the selected built-in display name or custom mode ID
-   * @return true if the mode supports console context
-   */
-  public static boolean isConsoleContextSupportedMode(String activeModeNameOrId) {
-    return BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(activeModeNameOrId)
-        || BuiltInChatMode.AGENT_MODE_NAME.equalsIgnoreCase(activeModeNameOrId)
-        || BuiltInChatMode.PLAN_MODE_NAME.equalsIgnoreCase(activeModeNameOrId);
-  }
-
-  /**
-   * Returns true when the @transform command is both enabled in preferences and supported by the active mode.
-   *
-   * @param activeModeNameOrId the selected built-in display name or custom mode ID
-   * @return true if @transform is enabled and supported
-   */
-  public boolean isTransformContextCommandAvailable(String activeModeNameOrId) {
-    return PreferencesUtils.isTransformContextEnabled() && isTransformContextSupportedMode(activeModeNameOrId);
-  }
-
-  /**
-   * Transform context is limited to built-in Ask, Agent, and Plan modes.
-   *
-   * @param activeModeNameOrId the selected built-in display name or custom mode ID
-   * @return true if the mode supports transform context
-   */
-  public static boolean isTransformContextSupportedMode(String activeModeNameOrId) {
-    return BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(activeModeNameOrId)
-        || BuiltInChatMode.AGENT_MODE_NAME.equalsIgnoreCase(activeModeNameOrId)
-        || BuiltInChatMode.PLAN_MODE_NAME.equalsIgnoreCase(activeModeNameOrId);
-  }
-
-  private Set<String> getAllCommandsSnapshot(String activeModeNameOrId) {
-    Set<String> commands = new HashSet<>(allCommands);
-    // Only add @console/@transform if enabled AND the current mode (if known) supports it.
-    // When activeModeNameOrId is null, we conservatively skip since we can't verify mode support.
-    if (activeModeNameOrId != null && isConsoleContextCommandAvailable(activeModeNameOrId)) {
-      commands.add(AGENT_MARK + CONSOLE_CONTEXT_COMMAND);
-    }
-    if (activeModeNameOrId != null && isTransformContextCommandAvailable(activeModeNameOrId)) {
-      commands.add(AGENT_MARK + TRANSFORM_CONTEXT_COMMAND);
-    }
-    return commands;
   }
 
   @Override
