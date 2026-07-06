@@ -27,6 +27,8 @@ Require-Bundle: org.mockito.mockito-core;bundle-version="5.14.2",
  org.eclipse.core.expressions,
  org.eclipse.core.net;bundle-version="1.5.200",
  org.eclipse.e4.core.services;bundle-version="2.4.200",
+ org.eclipse.ui.console;bundle-version="3.13.100",
  org.osgi.service.event,
  com.google.gson,
- com.microsoft.copilot.eclipse.terminal.api;bundle-version="0.19.0"
+ com.microsoft.copilot.eclipse.terminal.api;bundle-version="0.19.0",
+ com.microsoft.copilot.eclipse.anypoint;bundle-version="0.19.0"

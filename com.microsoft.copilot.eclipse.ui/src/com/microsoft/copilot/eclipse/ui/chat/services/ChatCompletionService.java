@@ -40,6 +40,7 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
 import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
+import com.microsoft.copilot.eclipse.core.chat.BuiltInChatMode;
 
 /**
  * Service for handling slash commands.
@@ -47,6 +48,10 @@ import com.microsoft.copilot.eclipse.ui.utils.PreferencesUtils;
 public class ChatCompletionService implements CopilotAuthStatusListener {
   public static final String AGENT_MARK = "@";
   public static final String TEMPLATE_MARK = "/";
+  public static final String CONSOLE_CONTEXT_COMMAND = "console";
+  public static final String CONSOLE_CONTEXT_DESCRIPTION = "Attach active console output";
+  public static final String TRANSFORM_CONTEXT_COMMAND = "transform";
+  public static final String TRANSFORM_CONTEXT_DESCRIPTION = "Attach active Transform Message editor context";
 
   private volatile List<ConversationTemplate> templates = List.of();
   private volatile List<ConversationAgent> agents = List.of();
@@ -208,6 +213,29 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     return false;
   }
 
+  /**
+   * Find a broken slash or agent command in the given text for the active mode.
+   *
+   * @param text the text
+   * @param cursorPosition the cursor position inside the first word
+   * @param activeModeNameOrId the active mode name or custom mode ID
+   * @return true when the command can be repaired by deleting one character
+   */
+  public boolean isBrokenCommand(String text, int cursorPosition, String activeModeNameOrId) {
+    Set<String> commands = getAllCommandsSnapshot(activeModeNameOrId);
+    if (commands == null) {
+      return false;
+    }
+    // Try to recover the text by adding a dot at the cursor position
+    String recoveredText = text.substring(0, cursorPosition) + "." + text.substring(cursorPosition);
+    for (String command : commands) {
+      if (matchesRecoveredCommand(recoveredText, command)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private boolean matchesRecoveredCommand(String recovered, String command) {
     if (command.length() != recovered.length()) {
       return false;
@@ -237,6 +265,21 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
     return allCommands.contains(text);
   }
 
+  /**
+   * Find a command in the given text for the active mode.
+   *
+   * @param text the text
+   * @param activeModeNameOrId the active mode name or custom mode ID
+   * @return true if the text is a known command
+   */
+  public boolean isCommand(String text, String activeModeNameOrId) {
+    Set<String> commands = getAllCommandsSnapshot(activeModeNameOrId);
+    if (commands == null) {
+      return false;
+    }
+    return commands.contains(text);
+  }
+
   public boolean isTempaltesReady() {
     return templates != null && templates.size() > 0;
   }
@@ -247,6 +290,63 @@ public class ChatCompletionService implements CopilotAuthStatusListener {
 
   public ConversationAgent[] getAgents() {
     return agents.toArray(new ConversationAgent[0]);
+  }
+
+  /**
+   * Returns whether @console should be available for the given active mode.
+   *
+   * @param activeModeNameOrId the selected built-in display name or custom mode ID
+   * @return true if @console is enabled and supported
+   */
+  public boolean isConsoleContextCommandAvailable(String activeModeNameOrId) {
+    return PreferencesUtils.isConsoleContextEnabled() && isConsoleContextSupportedMode(activeModeNameOrId);
+  }
+
+  /**
+   * Console context is intentionally limited to built-in Ask, Agent, and Plan modes.
+   *
+   * @param activeModeNameOrId the selected built-in display name or custom mode ID
+   * @return true if the mode supports console context
+   */
+  public static boolean isConsoleContextSupportedMode(String activeModeNameOrId) {
+    return BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(activeModeNameOrId)
+        || BuiltInChatMode.AGENT_MODE_NAME.equalsIgnoreCase(activeModeNameOrId)
+        || BuiltInChatMode.PLAN_MODE_NAME.equalsIgnoreCase(activeModeNameOrId);
+  }
+
+  /**
+   * Returns true when the @transform command is both enabled in preferences and supported by the active mode.
+   *
+   * @param activeModeNameOrId the selected built-in display name or custom mode ID
+   * @return true if @transform is enabled and supported
+   */
+  public boolean isTransformContextCommandAvailable(String activeModeNameOrId) {
+    return PreferencesUtils.isTransformContextEnabled() && isTransformContextSupportedMode(activeModeNameOrId);
+  }
+
+  /**
+   * Transform context is limited to built-in Ask, Agent, and Plan modes.
+   *
+   * @param activeModeNameOrId the selected built-in display name or custom mode ID
+   * @return true if the mode supports transform context
+   */
+  public static boolean isTransformContextSupportedMode(String activeModeNameOrId) {
+    return BuiltInChatMode.ASK_MODE_NAME.equalsIgnoreCase(activeModeNameOrId)
+        || BuiltInChatMode.AGENT_MODE_NAME.equalsIgnoreCase(activeModeNameOrId)
+        || BuiltInChatMode.PLAN_MODE_NAME.equalsIgnoreCase(activeModeNameOrId);
+  }
+
+  private Set<String> getAllCommandsSnapshot(String activeModeNameOrId) {
+    Set<String> commands = new HashSet<>(allCommands);
+    // Only add @console/@transform if enabled AND the current mode (if known) supports it.
+    // When activeModeNameOrId is null, we conservatively skip since we can't verify mode support.
+    if (activeModeNameOrId != null && isConsoleContextCommandAvailable(activeModeNameOrId)) {
+      commands.add(AGENT_MARK + CONSOLE_CONTEXT_COMMAND);
+    }
+    if (activeModeNameOrId != null && isTransformContextCommandAvailable(activeModeNameOrId)) {
+      commands.add(AGENT_MARK + TRANSFORM_CONTEXT_COMMAND);
+    }
+    return commands;
   }
 
   @Override
