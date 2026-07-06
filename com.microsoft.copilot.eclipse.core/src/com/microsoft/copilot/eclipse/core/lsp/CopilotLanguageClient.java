@@ -37,6 +37,7 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
 import com.microsoft.copilot.eclipse.core.chat.service.IChatServiceManager;
+import com.microsoft.copilot.eclipse.core.chat.service.ICustomizationFileService.CustomizationType;
 import com.microsoft.copilot.eclipse.core.chat.service.IMcpConfigService;
 import com.microsoft.copilot.eclipse.core.chat.service.IReferencedFileService;
 import com.microsoft.copilot.eclipse.core.events.CopilotEventConstants;
@@ -264,24 +265,42 @@ public class CopilotLanguageClient extends LanguageClientImpl {
   }
 
   /**
-   * Notify when custom skills change (global or workspace). Signal-only; clients re-fetch templates.
+   * Notify when custom skills change (global or workspace).
    */
   @JsonNotification("copilot/customSkill/didChange")
   public void onDidChangeCustomSkill(Object params) {
-    notifyCustomizationFilesChanged();
+    postCustomizationFilesChanged(CustomizationType.SKILL);
   }
 
   /**
-   * Notify when custom prompts change (global or workspace). Signal-only; clients re-fetch templates.
+   * Notify when custom prompts change (global or workspace).
    */
   @JsonNotification("copilot/customPrompt/didChange")
   public void onDidChangeCustomPrompt(Object params) {
-    notifyCustomizationFilesChanged();
+    postCustomizationFilesChanged(CustomizationType.PROMPT);
   }
 
-  private void notifyCustomizationFilesChanged() {
+  /**
+   * Notify when custom instructions change (global or workspace).
+   */
+  @JsonNotification("copilot/customInstruction/didChange")
+  public void onDidChangeCustomInstruction(Object params) {
+    postCustomizationFilesChanged(CustomizationType.INSTRUCTION);
+  }
+
+  /**
+   * Notify when custom agents change (global or workspace).
+   */
+  @JsonNotification("copilot/customAgent/didChange")
+  public void onDidChangeCustomAgent(Object params) {
+    postCustomizationFilesChanged(CustomizationType.AGENT);
+  }
+
+  // Broadcasts the change on the event bus; subscribers (the customization-file service and the
+  // slash-command service) react without this class depending on them directly.
+  private void postCustomizationFilesChanged(CustomizationType type) {
     if (eventBroker != null) {
-      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, null);
+      eventBroker.post(CopilotEventConstants.TOPIC_CHAT_DID_CHANGE_CUSTOMIZATION_FILES, type);
     }
   }
 
