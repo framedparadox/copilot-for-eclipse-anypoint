@@ -30,3 +30,4 @@ Require-Bundle: org.mockito.mockito-core;bundle-version="5.14.2",
  org.osgi.service.event,
  com.google.gson,
  com.microsoft.copilot.eclipse.terminal.api;bundle-version="0.20.0"
+ com.microsoft.copilot.eclipse.anypoint;bundle-version="0.20.0
