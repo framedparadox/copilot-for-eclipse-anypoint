@@ -62,8 +62,6 @@ public class Messages extends NLS {
   public static String preferences_page_transform_context;
   public static String preferences_page_transform_context_note_content;
   public static String preferences_page_restart_question;
-  public static String preferences_page_sub_agent;
-  public static String preferences_page_sub_agent_note_content;
   public static String preferences_page_mcp;
   public static String preferences_page_proxy_config_link;
   public static String preferences_page_proxy_settings;
