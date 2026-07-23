@@ -12,7 +12,7 @@
 
 	<properties>
 		<copilot-plugin-version>0.20.0-SNAPSHOT</copilot-plugin-version>
-		<base.name>GitHub Copilot</base.name>
+		<base.name>GitHub Copilot for Anypoint Studio</base.name>
 		<tycho-version>4.0.13</tycho-version>
 		<checkstyle-version>3.6.0</checkstyle-version>
 	</properties>
