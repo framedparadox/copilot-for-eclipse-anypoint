@@ -1,0 +1,246 @@
+name: Weekly Upstream Sync
+
+# Syncs microsoft/copilot-for-eclipse → main, then merges main → sync.
+# When the sync-branch merge has conflicts, launches a Cursor Cloud Agent to resolve them.
+on:
+  schedule:
+    # Every Monday at 09:00 UTC
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+    inputs:
+      skip_upstream_pull:
+        description: Skip pulling from the parent repo into main
+        required: false
+        default: false
+        type: boolean
+      force_cursor_merge:
+        description: Always launch Cursor for main → sync (even if merge is clean)
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UPSTREAM_REPO: microsoft/copilot-for-eclipse
+  UPSTREAM_BRANCH: main
+  TRACKING_BRANCH: main
+  SYNC_BRANCH: sync
+  CURSOR_API_URL: https://api.cursor.com/v1/agents
+
+jobs:
+  sync-upstream-to-main:
+    name: Pull parent into main
+    runs-on: ubuntu-latest
+    outputs:
+      main_updated: ${{ steps.finalize.outputs.updated }}
+      main_sha: ${{ steps.finalize.outputs.sha }}
+    steps:
+      - name: Checkout main
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_upstream_pull) }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TRACKING_BRANCH }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_upstream_pull) }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream and merge into main
+        id: merge_upstream
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_upstream_pull) }}
+        run: |
+          set -euo pipefail
+          git remote add upstream "https://github.com/${UPSTREAM_REPO}.git"
+          git fetch upstream "${UPSTREAM_BRANCH}"
+          BEFORE=$(git rev-parse HEAD)
+
+          if git merge-base --is-ancestor "upstream/${UPSTREAM_BRANCH}" HEAD; then
+            echo "main already contains upstream/${UPSTREAM_BRANCH}"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            if ! git merge --no-edit "upstream/${UPSTREAM_BRANCH}"; then
+              echo "::error::Merge conflicts while pulling ${UPSTREAM_REPO}:${UPSTREAM_BRANCH} into ${TRACKING_BRANCH}."
+              echo "::error::Resolve manually or launch a Cursor agent against the ${TRACKING_BRANCH} branch."
+              git merge --abort || true
+              exit 1
+            fi
+            AFTER=$(git rev-parse HEAD)
+            if [[ "$BEFORE" == "$AFTER" ]]; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Push main
+        id: push_main
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.skip_upstream_pull) && steps.merge_upstream.outputs.changed == 'true' }}
+        run: |
+          set -euo pipefail
+          git push origin "HEAD:${TRACKING_BRANCH}"
+
+      - name: Finalize outputs
+        id: finalize
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name == 'workflow_dispatch' && inputs.skip_upstream_pull }}" == "true" ]]; then
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            echo "sha=skipped" >> "$GITHUB_OUTPUT"
+          else
+            CHANGED="${{ steps.merge_upstream.outputs.changed }}"
+            if [[ "$CHANGED" == "true" ]]; then
+              echo "updated=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "updated=false" >> "$GITHUB_OUTPUT"
+            fi
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+  merge-main-into-sync:
+    name: Merge main into sync
+    needs: sync-upstream-to-main
+    runs-on: ubuntu-latest
+    outputs:
+      needs_cursor: ${{ steps.merge.outputs.needs_cursor }}
+      conflict_files: ${{ steps.merge.outputs.conflict_files }}
+    steps:
+      - name: Checkout sync
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SYNC_BRANCH }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch main
+        run: git fetch origin "${TRACKING_BRANCH}"
+
+      - name: Attempt merge
+        id: merge
+        env:
+          FORCE_CURSOR: ${{ github.event_name == 'workflow_dispatch' && inputs.force_cursor_merge }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${FORCE_CURSOR}" == "true" ]]; then
+            echo "needs_cursor=true" >> "$GITHUB_OUTPUT"
+            echo "conflict_files=forced" >> "$GITHUB_OUTPUT"
+            echo "Forced Cursor merge requested; skipping local merge."
+            exit 0
+          fi
+
+          if git merge-base --is-ancestor "origin/${TRACKING_BRANCH}" HEAD; then
+            echo "sync already contains origin/${TRACKING_BRANCH}"
+            echo "needs_cursor=false" >> "$GITHUB_OUTPUT"
+            echo "conflict_files=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git merge --no-edit "origin/${TRACKING_BRANCH}"; then
+            git push origin "HEAD:${SYNC_BRANCH}"
+            echo "needs_cursor=false" >> "$GITHUB_OUTPUT"
+            echo "conflict_files=" >> "$GITHUB_OUTPUT"
+            echo "Clean merge pushed to ${SYNC_BRANCH}"
+          else
+            CONFLICTS=$(git diff --name-only --diff-filter=U | tr '\n' ' ' || true)
+            echo "needs_cursor=true" >> "$GITHUB_OUTPUT"
+            echo "conflict_files=${CONFLICTS}" >> "$GITHUB_OUTPUT"
+            echo "::warning::Merge conflicts detected. Launching Cursor Cloud Agent."
+            git merge --abort || true
+          fi
+
+  cursor-resolve-conflicts:
+    name: Cursor resolves sync conflicts
+    needs: merge-main-into-sync
+    if: needs.merge-main-into-sync.outputs.needs_cursor == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require CURSOR_API_KEY
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+        run: |
+          if [[ -z "${CURSOR_API_KEY:-}" ]]; then
+            echo "::error::CURSOR_API_KEY secret is required to launch a Cursor Cloud Agent for conflict resolution."
+            echo "::error::Add it under Settings → Secrets and variables → Actions (Cursor Dashboard → API Keys)."
+            exit 1
+          fi
+
+      - name: Launch Cursor Cloud Agent
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          CONFLICT_FILES: ${{ needs.merge-main-into-sync.outputs.conflict_files }}
+          REPO_URL: https://github.com/${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          PROMPT=$(cat <<EOF
+          Weekly upstream sync for ${{ github.repository }}.
+
+          Goal:
+          1. Checkout and work on the existing \`sync\` branch (do not create a different working branch).
+          2. Fetch \`origin/main\` and merge \`origin/main\` into \`sync\`.
+          3. Resolve ALL merge conflicts.
+          4. Commit the merge and push to \`origin/sync\`.
+          5. Open or update a PR from \`sync\` into \`anypoint-studio/main\` summarizing what changed.
+
+          Conflict-resolution policy (Anypoint Studio fork of microsoft/copilot-for-eclipse):
+          - KEEP Anypoint Studio / MuleSoft-specific code: branding, MCP/Anypoint integrations, @console/@transform context, workspace context prefs, anypoint feature/bundles, custom release workflows (build.yml), and Anypoint display naming.
+          - TAKE upstream microsoft/copilot-for-eclipse improvements from \`main\` (features, bugfixes, version bumps, dependency updates) when they do not remove Anypoint customizations.
+          - When both sides changed the same area, combine them: keep Anypoint additions AND upstream improvements.
+          - Never leave conflict markers (<<<<<<<, =======, >>>>>>>).
+          - Prefer compiling/coherent Java + OSGi manifests after resolution.
+
+          Known conflict files from CI (may be empty or stale): ${CONFLICT_FILES}
+
+          After pushing, report the commit SHA and PR URL.
+          EOF
+          )
+
+          BODY=$(PROMPT="$PROMPT" REPO_URL="$REPO_URL" python3 <<'PY'
+          import json, os
+          body = {
+            "prompt": {"text": os.environ["PROMPT"]},
+            "name": "Weekly sync conflict resolution",
+            "repos": [{
+              "url": os.environ["REPO_URL"],
+              "startingRef": "sync",
+            }],
+            "workOnCurrentBranch": True,
+            "autoCreatePR": True,
+          }
+          print(json.dumps(body))
+          PY
+          )
+
+          echo "Launching Cursor agent against ${REPO_URL}@sync ..."
+          RESPONSE=$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --url "${CURSOR_API_URL}" \
+            -u "${CURSOR_API_KEY}:" \
+            --header "Content-Type: application/json" \
+            --data "${BODY}")
+
+          echo "$RESPONSE" | tee /tmp/cursor-agent-response.json
+          AGENT_ID=$(python3 -c 'import json; d=json.load(open("/tmp/cursor-agent-response.json")); a=d.get("agent") or d; print(a.get("id") or "")')
+          AGENT_URL=$(python3 -c 'import json; d=json.load(open("/tmp/cursor-agent-response.json")); a=d.get("agent") or d; print(a.get("url") or d.get("url") or "")')
+          echo "Cursor agent id: ${AGENT_ID}"
+          {
+            echo "### Cursor Cloud Agent"
+            echo "Launched to resolve merge conflicts on \`sync\`."
+            echo ""
+            echo "- Agent ID: \`${AGENT_ID}\`"
+            if [[ -n "$AGENT_URL" ]]; then
+              echo "- URL: ${AGENT_URL}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main", "sync", "anypoint-studio/main" ]
+  pull_request:
+    branches: [ "main", "sync", "anypoint-studio/main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    # Without an explicit limit a hung test JVM keeps the job alive for the 6 hour default and the
+    # logs are never published, which makes such hangs impossible to diagnose.
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+    - name: Setup Node.js environment
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      with:
+        node-version: 22
+
+    - name: Install Copilot agent
+      working-directory: com.microsoft.copilot.eclipse.core/copilot-agent
+      run: npm i -f
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build
+      uses: coactions/setup-xvfb@b6b4fcfb9f5a895edadc3bc76318fae0ac17c8b3 # v1.0.1
+      with:
+       run: >-
+           ./mvnw clean verify --batch-mode

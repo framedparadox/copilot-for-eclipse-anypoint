@@ -28,6 +28,7 @@ import org.osgi.service.prefs.BackingStoreException;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.FeatureFlags;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.CopilotUi;
 
 /**
@@ -88,7 +89,7 @@ public class ChatPreferencesPage extends FieldEditorPreferencePage implements IW
       disabledCompositeLayout.marginHeight = 0;
       disabledComposite.setLayout(disabledCompositeLayout);
       disabledComposite.setLayoutData(new GridData(SWT.FILL, SWT.TOP, true, false));
-      WrappableIconLink.createWithCustomizedImage(disabledComposite, "/icons/information.png",
+      WrappableIconLink.create(disabledComposite, CopilotImages.getImage(CopilotImages.IMG_INFORMATION),
           Messages.setting_managed_by_organization);
     }
 

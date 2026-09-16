@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jface.text.BadLocationException;
@@ -30,7 +29,6 @@ import org.eclipse.swt.graphics.Point;
 
 import com.microsoft.copilot.eclipse.core.CopilotCore;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.TemplateSource;
 import com.microsoft.copilot.eclipse.ui.chat.services.ChatCompletionService;
@@ -188,21 +186,6 @@ class ChatAssistProcessor implements IContentAssistProcessor {
           ChatCompletionService.TRANSFORM_CONTEXT_COMMAND, ChatCompletionService.TRANSFORM_CONTEXT_DESCRIPTION));
     }
 
-    if (!commandService.isAgentsReady()) {
-      return proposals.toArray(new ICompletionProposal[0]);
-    }
-    // So far no language-server agent command supports agent mode. Local context commands above may still apply.
-    if (Objects.equals(chatServiceManager.getUserPreferenceService().getActiveChatMode(), ChatMode.Agent)) {
-      return proposals.toArray(new ICompletionProposal[0]);
-    }
-
-    ConversationAgent[] agents = commandService.getAgents();
-    for (ConversationAgent agent : agents) {
-      if (prefix.isEmpty() || agent.getSlug().startsWith(prefix)) {
-        proposals
-            .add(new ChatCompletionProposal(ChatCompletionService.AGENT_MARK, agent.getSlug(), agent.getDescription()));
-      }
-    }
     return proposals.toArray(new ICompletionProposal[proposals.size()]);
   }
 

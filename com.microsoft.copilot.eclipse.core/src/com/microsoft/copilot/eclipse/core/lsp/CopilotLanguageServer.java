@@ -22,7 +22,6 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatTurnResult;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CheckStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CompletionResult;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCodeCopyParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationCreateParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationDestroyParams;
@@ -53,10 +52,14 @@ import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateConversationToolsSt
 import com.microsoft.copilot.eclipse.core.lsp.protocol.UpdateMcpToolsStatusParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.WorkspaceFoldersParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokApiKey;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokDeleteProviderConfigParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListApiKeyResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListModelResponse;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigParams;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokListProviderConfigResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokModel;
+import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokProviderConfig;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.byok.ByokStatusResponse;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageParams;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.git.GenerateCommitMessageResult;
@@ -224,12 +227,6 @@ public interface CopilotLanguageServer extends LanguageServer {
   CompletableFuture<CopilotModel[]> listModels(NullParams param);
 
   /**
-   * Get the conversation agents.
-   */
-  @JsonRequest("conversation/agents")
-  CompletableFuture<ConversationAgent[]> listAgents(NullParams params);
-
-  /**
    * Notify the code acceptance.
    */
   @JsonRequest("conversation/notifyCodeAcceptance")
@@ -282,6 +279,24 @@ public interface CopilotLanguageServer extends LanguageServer {
    */
   @JsonRequest("copilot/byok/listApiKeys")
   CompletableFuture<ByokListApiKeyResponse> listByokApiKeys(ByokApiKey apiKey);
+
+  /**
+   * Save a built-in BYOK provider configuration.
+   */
+  @JsonRequest("copilot/byok/saveProviderConfig")
+  CompletableFuture<ByokStatusResponse> saveByokProviderConfig(ByokProviderConfig providerConfig);
+
+  /**
+   * Delete a built-in BYOK provider configuration.
+   */
+  @JsonRequest("copilot/byok/deleteProviderConfig")
+  CompletableFuture<ByokStatusResponse> deleteByokProviderConfig(ByokDeleteProviderConfigParams params);
+
+  /**
+   * List built-in BYOK provider configurations.
+   */
+  @JsonRequest("copilot/byok/listProviderConfigs")
+  CompletableFuture<ByokListProviderConfigResponse> listByokProviderConfigs(ByokListProviderConfigParams params);
 
   /**
    * Update the status of the mcp server and tools.
