@@ -4,28 +4,25 @@
 package com.microsoft.copilot.eclipse.ui.chat;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.Link;
 import org.eclipse.ui.ISharedImages;
-import org.eclipse.ui.PlatformUI;
 
 import com.microsoft.copilot.eclipse.core.lsp.protocol.quota.CopilotPlan;
+import com.microsoft.copilot.eclipse.ui.CopilotImages;
 import com.microsoft.copilot.eclipse.ui.chat.QuotaActions.QuotaAction;
 import com.microsoft.copilot.eclipse.ui.i18n.Messages;
 import com.microsoft.copilot.eclipse.ui.swt.CssConstants;
+import com.microsoft.copilot.eclipse.ui.utils.AccessibilityUtils;
 import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
 
 /**
@@ -34,12 +31,7 @@ import com.microsoft.copilot.eclipse.ui.utils.UiUtils;
  * and whether to pass a plan.
  */
 public class WarnWidget extends Composite {
-  private static final Pattern MARKDOWN_LINK_PATTERN = Pattern.compile("\\[([^\\]]+)]\\(([^)]+)\\)");
-  private static final Pattern RAW_URL_PATTERN = Pattern.compile("https?://\\S+");
-
   private int buttonLeftMargin;
-  private Color darkBackground;
-  private Color darkForeground;
 
   /**
    * Create the composite.
@@ -120,7 +112,7 @@ public class WarnWidget extends Composite {
     composite.setLayoutData(new GridData(SWT.LEFT, SWT.NONE, true, false));
 
     Label iconLabel = new Label(composite, SWT.TOP);
-    Image warnImage = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_WARN_TSK);
+    Image warnImage = CopilotImages.getSharedImage(ISharedImages.IMG_OBJS_WARN_TSK);
     iconLabel.setImage(warnImage);
     GridData iconGd = new GridData(SWT.LEFT, SWT.TOP, false, false);
     iconGd.verticalIndent = 4;
@@ -128,70 +120,17 @@ public class WarnWidget extends Composite {
     buttonLeftMargin = warnLayout.marginWidth + warnLayout.marginLeft + warnImage.getBounds().width
         + warnLayout.horizontalSpacing;
 
-    Link messageLink = new Link(composite, SWT.LEFT | SWT.WRAP);
-    messageLink.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-    messageLink.setText(toLinkMarkup(message));
-    messageLink.addSelectionListener(new SelectionAdapter() {
-      @Override
-      public void widgetSelected(org.eclipse.swt.events.SelectionEvent event) {
-        UiUtils.openLink(event.text);
-      }
-    });
+    ChatMarkupViewer textLabel = new ChatMarkupViewer(composite, SWT.LEFT | SWT.WRAP);
+    StyledText styledText = textLabel.getTextWidget();
+    styledText.setLayoutData(new GridData(SWT.LEFT, SWT.CENTER, true, true));
+    styledText.setEditable(false);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+        Messages.chat_warnWidget_message_accessibilityName);
+    textLabel.setMarkup(message);
 
     requestLayout();
   }
 
-  private static String toLinkMarkup(String message) {
-    String text = stripMarkdownEmphasis(message == null ? "" : message);
-    Matcher markdownLinkMatcher = MARKDOWN_LINK_PATTERN.matcher(text);
-    StringBuilder result = new StringBuilder();
-    int offset = 0;
-    while (markdownLinkMatcher.find()) {
-      appendTextWithRawLinks(result, text.substring(offset, markdownLinkMatcher.start()));
-      appendLink(result, markdownLinkMatcher.group(1), markdownLinkMatcher.group(2));
-      offset = markdownLinkMatcher.end();
-    }
-    appendTextWithRawLinks(result, text.substring(offset));
-    return result.toString();
-  }
-
-  private static void appendTextWithRawLinks(StringBuilder result, String text) {
-    Matcher rawUrlMatcher = RAW_URL_PATTERN.matcher(text);
-    int offset = 0;
-    while (rawUrlMatcher.find()) {
-      result.append(escapeLinkText(text.substring(offset, rawUrlMatcher.start())));
-      String url = rawUrlMatcher.group();
-      String trailingPunctuation = "";
-      while (!url.isEmpty() && ".,;:".indexOf(url.charAt(url.length() - 1)) >= 0) {
-        trailingPunctuation = url.charAt(url.length() - 1) + trailingPunctuation;
-        url = url.substring(0, url.length() - 1);
-      }
-      appendLink(result, url, url);
-      result.append(escapeLinkText(trailingPunctuation));
-      offset = rawUrlMatcher.end();
-    }
-    result.append(escapeLinkText(text.substring(offset)));
-  }
-
-  private static void appendLink(StringBuilder result, String label, String url) {
-    result.append("<a href=\"")
-        .append(escapeLinkAttribute(url == null ? "" : url.trim()))
-        .append("\">")
-        .append(escapeLinkText(stripMarkdownEmphasis(label == null ? "" : label)))
-        .append("</a>");
-  }
-
-  private static String stripMarkdownEmphasis(String text) {
-    return text.replace("**", "");
-  }
-
-  private static String escapeLinkText(String text) {
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-  }
-
-  private static String escapeLinkAttribute(String text) {
-    return escapeLinkText(text).replace("\"", "&quot;").replace("'", "&apos;");
-  }
 
   /**
    * Render plan-driven action buttons for a quota-exceeded warning, kept in sync with the quota {@link StaticBanner}.

@@ -20,6 +20,8 @@ public final class Messages extends NLS {
   public static String menu_turnOnCompletions;
   public static String menu_turnOffCompletions;
   public static String menu_openChatView;
+  public static String quickFix_fixWithCopilot;
+  public static String quickFix_prompt;
   public static String menu_quota_copilotUsage;
   public static String menu_quota_codeCompletions;
   public static String menu_quota_chatMessages;
@@ -94,6 +96,7 @@ public final class Messages extends NLS {
   public static String chat_actionBar_sendToJob_noProject;
   public static String chat_actionBar_cancelButton_Tooltip;
   public static String chat_actionBar_toolButton_toolTip;
+  public static String chat_actionBar_toolButton_accessibilityName;
   public static String chat_actionBar_toolButton_disabled_toolTip;
   public static String chat_actionBar_modelPicker_manageModels;
   public static String chat_actionBar_toolButton_detected_toolTip;
@@ -156,6 +159,9 @@ public final class Messages extends NLS {
   public static String chat_currentReferencedFile_description;
   public static String chat_turnWidget_copilot;
   public static String chat_turnWidget_user;
+  public static String chat_userTurnWidget_message_accessibilityName;
+  public static String chat_copilotTurnWidget_message_accessibilityName;
+  public static String chat_warnWidget_message_accessibilityName;
   public static String chat_model_unsupported_message;
   public static String chat_copilotModels;
   public static String chat_standardModels;
@@ -200,10 +206,13 @@ public final class Messages extends NLS {
   public static String model_billing_multiplier_variable;
   public static String model_preview_suffix;
   public static String model_hover_contextWindow;
+  public static String model_hover_contextWindow_title;
   public static String model_hover_cost;
   public static String model_hover_thinkingEffort;
   public static String model_hover_thinkingEffort_default_suffix;
   public static String model_hover_customModelInfo;
+  public static String model_contextWindow_default_description;
+  public static String model_contextWindow_longContext_description;
   public static String model_reasoningEffort_none;
   public static String model_reasoningEffort_low;
   public static String model_reasoningEffort_medium;

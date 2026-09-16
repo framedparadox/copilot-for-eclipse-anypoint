@@ -121,5 +121,7 @@ public class UserTurnWidget extends BaseTurnWidget {
     serviceManager.getChatFontService().registerControl(styledText);
 
     AccessibilityUtils.addFocusBorderToComposite(styledText);
+    AccessibilityUtils.addAccessibilityNameForUiComponent(styledText,
+        nextTextBlockAccessibilityName(Messages.chat_userTurnWidget_message_accessibilityName));
   }
 }

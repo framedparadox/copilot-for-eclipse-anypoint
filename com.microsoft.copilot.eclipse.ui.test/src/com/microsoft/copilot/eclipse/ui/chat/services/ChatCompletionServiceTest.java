@@ -29,7 +29,6 @@ import com.microsoft.copilot.eclipse.core.AuthStatusManager;
 import com.microsoft.copilot.eclipse.core.Constants;
 import com.microsoft.copilot.eclipse.core.lsp.CopilotLanguageServerConnection;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ChatMode;
-import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationAgent;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.ConversationTemplate;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotScope;
 import com.microsoft.copilot.eclipse.core.lsp.protocol.CopilotStatusResult;
@@ -73,8 +72,6 @@ class ChatCompletionServiceTest {
         List.of(CopilotScope.CHAT_PANEL), null);
     ConversationTemplate[] templates = new ConversationTemplate[] { template };
     when(mockLsConnection.listConversationTemplates(any())).thenReturn(CompletableFuture.completedFuture(templates));
-    when(mockLsConnection.listConversationAgents())
-        .thenReturn(CompletableFuture.completedFuture(new ConversationAgent[0]));
     when(mockAuthStatusManager.getCopilotStatus()).thenReturn(CopilotStatusResult.OK);
     chatCompletionService = new ChatCompletionService(mockLsConnection, mockAuthStatusManager);
     try {
@@ -123,6 +120,8 @@ class ChatCompletionServiceTest {
   void testIsCommand() {
     assertTrue(chatCompletionService.isCommand("/test"));
     assertFalse(chatCompletionService.isCommand("/invalid"));
+    assertFalse(chatCompletionService.isCommand("@workspace"));
+    assertFalse(chatCompletionService.isCommand("@project"));
   }
 
   @Test
